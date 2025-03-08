@@ -1,0 +1,157 @@
+{
+  "ragas": [
+    {
+      "id": "yaman",
+      "name": "Yaman",
+      "that": "Kalyan",
+      "arohan": [0, 2, 4, 6, 7, 9, 11, 12],
+      "avarohan": [12, 11, 9, 7, 6, 4, 2, 0],
+      "vadi": 4,
+      "samvadi": 11,
+      "pakad": "N R G M' P",
+      "mood": "peaceful, devotional",
+      "time": "evening (7-10 PM)",
+      "common_patterns": [
+        [0, 2, 4, 6, 7],
+        [11, 9, 7, 6, 4],
+        [9, 11, 0, 11, 9],
+        [4, 6, 7, 9, 7, 6, 4],
+        [7, 9, 11, 12, 11, 9, 7]
+      ],
+      "characteristic_phrases": [
+        [9, 11, 0, 11, 9, 7],
+        [4, 6, 7, 6, 4, 2, 4],
+        [2, 4, 6, 7, 9, 7, 4]
+      ],
+      "suitable_for": ["focus", "evening study", "relaxation"]
+    },
+    {
+      "id": "bhairav",
+      "name": "Bhairav",
+      "that": "Bhairav",
+      "arohan": [0, 1, 4, 5, 7, 8, 11, 12],
+      "avarohan": [12, 11, 8, 7, 5, 4, 1, 0],
+      "vadi": 1,
+      "samvadi": 8,
+      "pakad": "r G m P d N",
+      "mood": "serious, profound",
+      "time": "morning (6-9 AM)",
+      "common_patterns": [
+        [0, 1, 4, 5, 7],
+        [11, 8, 7, 5, 4],
+        [1, 0, 1, 4, 1]
+      ],
+      "characteristic_phrases": [
+        [0, 1, 0, 1, 4, 1, 0],
+        [5, 7, 8, 7, 5, 4, 1],
+        [1, 4, 5, 4, 1, 0]
+      ],
+      "suitable_for": ["morning focus", "deep concentration"]
+    },
+    {
+      "id": "malkauns",
+      "name": "Malkauns",
+      "that": "Bhairavi",
+      "arohan": [0, 3, 5, 8, 10, 12],
+      "avarohan": [12, 10, 8, 5, 3, 0],
+      "vadi": 3,
+      "samvadi": 10,
+      "pakad": "g m d n S",
+      "mood": "deep, meditative",
+      "time": "night (10 PM-1 AM)",
+      "common_patterns": [
+        [0, 3, 5, 3, 0],
+        [5, 8, 10, 8, 5],
+        [10, 12, 10, 8, 5]
+      ],
+      "characteristic_phrases": [
+        [0, 3, 0, 3, 5, 3, 0],
+        [5, 8, 5, 3, 5, 8, 10, 8, 5],
+        [10, 12, 10, 8, 5, 3, 0]
+      ],
+      "suitable_for": ["night study", "deep concentration", "mindfulness"]
+    },
+    {
+      "id": "bhimpalasi",
+      "name": "Bhimpalasi",
+      "that": "Kafi",
+      "arohan": [0, 2, 3, 5, 7, 9, 10, 12],
+      "avarohan": [12, 10, 8, 7, 5, 3, 2, 0],
+      "vadi": 7,
+      "samvadi": 3,
+      "pakad": "m P n d P m g R S",
+      "mood": "serious, introspective",
+      "time": "afternoon (3-6 PM)",
+      "common_patterns": [
+        [7, 5, 7, 9, 10, 9, 7],
+        [5, 3, 2, 0, 2, 3, 5],
+        [10, 9, 7, 5, 3, 5]
+      ],
+      "characteristic_phrases": [
+        [5, 7, 9, 10, 9, 7, 5],
+        [7, 5, 3, 5, 7, 5],
+        [5, 3, 2, 0, 3, 5]
+      ],
+      "suitable_for": ["afternoon study", "focus", "reflection"]
+    },
+    {
+      "id": "desh",
+      "name": "Desh",
+      "that": "Khamaj",
+      "arohan": [0, 2, 3, 5, 7, 9, 10, 12],
+      "avarohan": [12, 10, 7, 5, 3, 2, 0],
+      "vadi": 5,
+      "samvadi": 10,
+      "pakad": "R G m P n n P G m R S",
+      "mood": "romantic, playful, light",
+      "time": "night (9 PM-12 AM)",
+      "common_patterns": [
+        [0, 2, 3, 5, 3, 2, 0],
+        [5, 7, 9, 10, 7, 5],
+        [10, 12, 10, 7, 5]
+      ],
+      "characteristic_phrases": [
+        [5, 7, 9, 10, 9, 7, 5],
+        [5, 3, 5, 7, 5, 3, 2, 0],
+        [0, 2, 3, 5, 7, 5, 3, 2, 0]
+      ],
+      "suitable_for": ["light focus", "creative work", "relaxed study"]
+    },
+    {
+      "id": "bageshri",
+      "name": "Bageshri",
+      "that": "Kafi",
+      "arohan": [0, 2, 3, 5, 7, 8, 10, 12],
+      "avarohan": [12, 10, 8, 7, 5, 3, 2, 0],
+      "vadi": 7,
+      "samvadi": 3,
+      "pakad": "S g m P d n d P",
+      "mood": "sweet, romantic, devotional",
+      "time": "night (9 PM-12 AM)",
+      "common_patterns": [
+        [7, 8, 10, 8, 7, 5],
+        [5, 7, 8, 7, 5, 3],
+        [3, 5, 3, 2, 0]
+      ],
+      "characteristic_phrases": [
+        [5, 7, 8, 10, 8, 7, 5],
+        [10, 12, 10, 8, 7, 8, 7, 5],
+        [5, 3, 2, 0, 2, 3, 2, 0]
+      ],
+      "suitable_for": ["evening relaxation", "light focus", "emotional balance"]
+    }
+  ],
+  "time_categories": {
+    "morning": ["bhairav"],
+    "afternoon": ["bhimpalasi"],
+    "evening": ["yaman"],
+    "night": ["malkauns", "desh", "bageshri"]
+  },
+  "mood_categories": {
+    "focus": ["yaman", "bhairav", "bhimpalasi"],
+    "deep_concentration": ["bhairav", "malkauns"],
+    "relaxation": ["yaman", "desh", "bageshri"],
+    "creative": ["desh", "bageshri"],
+    "meditative": ["malkauns"]
+  }
+}
