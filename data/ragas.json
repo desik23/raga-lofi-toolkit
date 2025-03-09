@@ -1,157 +1,549 @@
 {
   "ragas": [
     {
-      "id": "yaman",
-      "name": "Yaman",
-      "that": "Kalyan",
+      "id": "shankarabharanam",
+      "name": "Shankarabharanam",
+      "system": "carnatic",
+      "hindustani_equivalent": "bilawal",
+      "hindustani_name": "Bilawal",
+      "melakarta": 29,
+      "arohan": [0, 2, 4, 5, 7, 9, 11, 12],
+      "avarohan": [12, 11, 9, 7, 5, 4, 2, 0],
+      "vadi": 7,
+      "samvadi": 4,
+      "mood": "devotional, peaceful, heroic",
+      "time": "afternoon",
+      "common_patterns": [
+        [0, 2, 4, 5, 7],
+        [7, 9, 11, 12, 11, 9, 7],
+        [5, 7, 5, 4, 2, 0]
+      ],
+      "characteristic_phrases": [
+        [7, 9, 11, 9, 7, 5],
+        [5, 4, 2, 4, 5, 7],
+        [11, 9, 7, 5, 4, 2, 0]
+      ],
+      "suitable_for": ["devotional", "focus", "balanced study"]
+    },
+    {
+      "id": "mayamalavagowla",
+      "name": "Mayamalavagowla",
+      "system": "carnatic",
+      "hindustani_equivalent": "bhairav",
+      "hindustani_name": "Bhairav",
+      "melakarta": 15,
+      "arohan": [0, 1, 4, 5, 7, 8, 11, 12],
+      "avarohan": [12, 11, 8, 7, 5, 4, 1, 0],
+      "vadi": 5,
+      "samvadi": 11,
+      "mood": "serious, profound, devotional",
+      "time": "morning (6-9 AM)",
+      "common_patterns": [
+        [0, 1, 4, 0],
+        [5, 7, 8, 7, 5],
+        [11, 8, 7, 5, 4, 1, 0]
+      ],
+      "characteristic_phrases": [
+        [0, 1, 4, 5, 4, 1, 0],
+        [5, 7, 8, 11, 8, 7, 5],
+        [7, 5, 4, 1, 0]
+      ],
+      "suitable_for": ["morning focus", "deep concentration", "spiritual study"]
+    },
+    {
+      "id": "kalyani",
+      "name": "Kalyani",
+      "system": "carnatic",
+      "hindustani_equivalent": "yaman",
+      "hindustani_name": "Yaman",
+      "melakarta": 65,
       "arohan": [0, 2, 4, 6, 7, 9, 11, 12],
       "avarohan": [12, 11, 9, 7, 6, 4, 2, 0],
       "vadi": 4,
-      "samvadi": 11,
-      "pakad": "N R G M' P",
-      "mood": "peaceful, devotional",
+      "samvadi": 7,
+      "mood": "joyful, heroic, devotional",
       "time": "evening (7-10 PM)",
       "common_patterns": [
         [0, 2, 4, 6, 7],
-        [11, 9, 7, 6, 4],
-        [9, 11, 0, 11, 9],
-        [4, 6, 7, 9, 7, 6, 4],
-        [7, 9, 11, 12, 11, 9, 7]
+        [7, 9, 11, 12, 11, 9, 7],
+        [7, 6, 4, 2, 0]
       ],
       "characteristic_phrases": [
-        [9, 11, 0, 11, 9, 7],
-        [4, 6, 7, 6, 4, 2, 4],
-        [2, 4, 6, 7, 9, 7, 4]
+        [7, 9, 11, 12, 11, 9, 7],
+        [9, 7, 6, 4, 6, 4, 2, 0],
+        [6, 4, 2, 0, 2, 4, 6, 7]
       ],
-      "suitable_for": ["focus", "evening study", "relaxation"]
+      "suitable_for": ["evening focus", "positive energy", "creative work"]
     },
     {
-      "id": "bhairav",
-      "name": "Bhairav",
-      "that": "Bhairav",
-      "arohan": [0, 1, 4, 5, 7, 8, 11, 12],
-      "avarohan": [12, 11, 8, 7, 5, 4, 1, 0],
-      "vadi": 1,
-      "samvadi": 8,
-      "pakad": "r G m P d N",
-      "mood": "serious, profound",
-      "time": "morning (6-9 AM)",
+      "id": "keeravani",
+      "name": "Keeravani",
+      "system": "carnatic",
+      "hindustani_equivalent": "kafi",
+      "hindustani_name": "Kafi",
+      "melakarta": 21,
+      "arohan": [0, 2, 3, 5, 7, 9, 10, 12],
+      "avarohan": [12, 10, 9, 7, 5, 3, 2, 0],
+      "vadi": 7,
+      "samvadi": 3,
+      "mood": "pathos, devotional, introspective",
+      "time": "evening",
       "common_patterns": [
-        [0, 1, 4, 5, 7],
-        [11, 8, 7, 5, 4],
-        [1, 0, 1, 4, 1]
+        [0, 2, 3, 5, 7],
+        [7, 5, 3, 2, 0],
+        [7, 9, 10, 9, 7]
       ],
       "characteristic_phrases": [
-        [0, 1, 0, 1, 4, 1, 0],
-        [5, 7, 8, 7, 5, 4, 1],
-        [1, 4, 5, 4, 1, 0]
+        [5, 7, 9, 10, 9, 7, 5],
+        [10, 9, 7, 5, 3, 2, 0],
+        [2, 3, 5, 7, 5, 3, 2, 0]
       ],
-      "suitable_for": ["morning focus", "deep concentration"]
+      "suitable_for": ["reflective study", "emotional balance", "evening focus"]
     },
     {
-      "id": "malkauns",
-      "name": "Malkauns",
-      "that": "Bhairavi",
+      "id": "hindolam",
+      "name": "Hindolam",
+      "system": "carnatic",
+      "hindustani_equivalent": "malkauns",
+      "hindustani_name": "Malkauns",
+      "melakarta": null,
       "arohan": [0, 3, 5, 8, 10, 12],
       "avarohan": [12, 10, 8, 5, 3, 0],
-      "vadi": 3,
+      "vadi": 5,
       "samvadi": 10,
-      "pakad": "g m d n S",
-      "mood": "deep, meditative",
-      "time": "night (10 PM-1 AM)",
+      "mood": "meditative, serious, contemplative",
+      "time": "night",
       "common_patterns": [
         [0, 3, 5, 3, 0],
         [5, 8, 10, 8, 5],
-        [10, 12, 10, 8, 5]
+        [10, 8, 5, 3, 0]
       ],
       "characteristic_phrases": [
-        [0, 3, 0, 3, 5, 3, 0],
-        [5, 8, 5, 3, 5, 8, 10, 8, 5],
-        [10, 12, 10, 8, 5, 3, 0]
+        [0, 3, 5, 8, 5, 3, 0],
+        [5, 8, 10, 12, 10, 8, 5],
+        [8, 5, 3, 0, 3, 5]
       ],
-      "suitable_for": ["night study", "deep concentration", "mindfulness"]
+      "suitable_for": ["deep concentration", "night study", "meditation"]
     },
     {
-      "id": "bhimpalasi",
-      "name": "Bhimpalasi",
-      "that": "Kafi",
-      "arohan": [0, 2, 3, 5, 7, 9, 10, 12],
-      "avarohan": [12, 10, 8, 7, 5, 3, 2, 0],
+      "id": "hamsadhwani",
+      "name": "Hamsadhwani",
+      "system": "carnatic",
+      "hindustani_equivalent": null,
+      "hindustani_name": null,
+      "melakarta": null,
+      "arohan": [0, 2, 4, 7, 9, 12],
+      "avarohan": [12, 9, 7, 4, 2, 0],
       "vadi": 7,
-      "samvadi": 3,
-      "pakad": "m P n d P m g R S",
-      "mood": "serious, introspective",
-      "time": "afternoon (3-6 PM)",
+      "samvadi": 2,
+      "mood": "joyful, bright, pleasant",
+      "time": "evening",
       "common_patterns": [
-        [7, 5, 7, 9, 10, 9, 7],
-        [5, 3, 2, 0, 2, 3, 5],
-        [10, 9, 7, 5, 3, 5]
+        [0, 2, 4, 7, 9],
+        [9, 7, 4, 2, 0],
+        [7, 9, 12, 9, 7]
       ],
       "characteristic_phrases": [
-        [5, 7, 9, 10, 9, 7, 5],
-        [7, 5, 3, 5, 7, 5],
-        [5, 3, 2, 0, 3, 5]
+        [0, 2, 4, 7, 9, 7, 4],
+        [9, 12, 9, 7, 4, 2, 0],
+        [7, 4, 7, 9, 7, 4, 2, 0]
       ],
-      "suitable_for": ["afternoon study", "focus", "reflection"]
+      "suitable_for": ["uplifting study", "active focus", "creative inspiration"]
     },
     {
-      "id": "desh",
-      "name": "Desh",
-      "that": "Khamaj",
-      "arohan": [0, 2, 3, 5, 7, 9, 10, 12],
-      "avarohan": [12, 10, 7, 5, 3, 2, 0],
+      "id": "mohanam",
+      "name": "Mohanam",
+      "system": "carnatic",
+      "hindustani_equivalent": "bhupali",
+      "hindustani_name": "Bhupali",
+      "melakarta": null,
+      "arohan": [0, 2, 4, 7, 9, 12],
+      "avarohan": [12, 9, 7, 4, 2, 0],
+      "vadi": 7,
+      "samvadi": 2,
+      "mood": "romantic, devotional, joyful",
+      "time": "evening",
+      "common_patterns": [
+        [0, 2, 4, 7],
+        [7, 9, 12, 9, 7],
+        [9, 7, 4, 2, 0]
+      ],
+      "characteristic_phrases": [
+        [0, 2, 4, 7, 4, 2, 0],
+        [7, 9, 12, 9, 7],
+        [7, 4, 2, 0, 2, 4, 7]
+      ],
+      "suitable_for": ["relaxed focus", "balanced energy", "evening concentration"]
+    },
+    {
+      "id": "bhairavi",
+      "name": "Bhairavi",
+      "system": "carnatic",
+      "hindustani_equivalent": "bhairavi",
+      "hindustani_name": "Bhairavi",
+      "melakarta": 20,
+      "arohan": [0, 1, 3, 5, 7, 8, 10, 12],
+      "avarohan": [12, 10, 8, 7, 5, 3, 1, 0],
       "vadi": 5,
       "samvadi": 10,
-      "pakad": "R G m P n n P G m R S",
-      "mood": "romantic, playful, light",
-      "time": "night (9 PM-12 AM)",
+      "mood": "devotional, compassionate, introspective",
+      "time": "morning",
       "common_patterns": [
-        [0, 2, 3, 5, 3, 2, 0],
-        [5, 7, 9, 10, 7, 5],
-        [10, 12, 10, 7, 5]
+        [0, 1, 3, 5, 7],
+        [7, 5, 3, 1, 0],
+        [5, 7, 8, 10, 8, 7, 5]
       ],
       "characteristic_phrases": [
-        [5, 7, 9, 10, 9, 7, 5],
-        [5, 3, 5, 7, 5, 3, 2, 0],
-        [0, 2, 3, 5, 7, 5, 3, 2, 0]
+        [7, 8, 10, 8, 7, 5, 3, 1, 0],
+        [0, 1, 3, 5, 3, 1, 0],
+        [5, 7, 5, 3, 1, 0]
       ],
-      "suitable_for": ["light focus", "creative work", "relaxed study"]
+      "suitable_for": ["morning study", "emotional depth", "introspective work"]
     },
     {
-      "id": "bageshri",
-      "name": "Bageshri",
-      "that": "Kafi",
+      "id": "todi",
+      "name": "Todi",
+      "system": "carnatic",
+      "hindustani_equivalent": "todi",
+      "hindustani_name": "Todi",
+      "melakarta": 8,
+      "arohan": [0, 1, 3, 6, 7, 8, 11, 12],
+      "avarohan": [12, 11, 8, 7, 6, 3, 1, 0],
+      "vadi": 7,
+      "samvadi": 3,
+      "mood": "serious, deep, contemplative",
+      "time": "late morning to afternoon",
+      "common_patterns": [
+        [0, 1, 3, 6, 7],
+        [7, 6, 3, 1, 0],
+        [7, 8, 11, 8, 7]
+      ],
+      "characteristic_phrases": [
+        [1, 3, 6, 7, 8, 7, 6, 3],
+        [6, 7, 8, 11, 8, 7, 6],
+        [6, 3, 1, 0, 1, 3, 6]
+      ],
+      "suitable_for": ["deep analytical thinking", "serious study", "complex problem-solving"]
+    },
+    {
+      "id": "darbari_kannada",
+      "name": "Darbari Kannada",
+      "system": "carnatic",
+      "hindustani_equivalent": "darbari",
+      "hindustani_name": "Darbari",
+      "melakarta": null,
+      "janya_of": 8,
+      "arohan": [0, 1, 3, 5, 7, 8, 10, 12],
+      "avarohan": [12, 10, 8, 7, 5, 3, 1, 0],
+      "vadi": 5,
+      "samvadi": 10,
+      "mood": "serious, profound, peaceful",
+      "time": "night",
+      "common_patterns": [
+        [0, 1, 3, 5, 7],
+        [7, 5, 3, 1, 0],
+        [7, 8, 10, 8, 7]
+      ],
+      "characteristic_phrases": [
+        [7, 8, 7, 5, 7, 5, 3],
+        [10, 8, 7, 8, 10, 8, 7],
+        [5, 3, 1, 0, 1, 3]
+      ],
+      "suitable_for": ["deep focus", "introspection", "night study", "relaxation"],
+      "weather": "moonlit night"
+    },
+    {
+      "id": "harikambhoji",
+      "name": "Hari Kambhoji",
+      "system": "carnatic",
+      "hindustani_equivalent": "khamaj",
+      "hindustani_name": "Khamaj",
+      "melakarta": 28,
+      "arohan": [0, 2, 4, 5, 7, 9, 10, 12],
+      "avarohan": [12, 10, 9, 7, 5, 4, 2, 0],
+      "vadi": 7,
+      "samvadi": 4,
+      "mood": "pleasant, joyful, devotional",
+      "time": "afternoon to evening",
+      "common_patterns": [
+        [0, 2, 4, 5, 7],
+        [7, 9, 10, 9, 7],
+        [7, 5, 4, 2, 0]
+      ],
+      "characteristic_phrases": [
+        [7, 9, 10, 9, 7, 5],
+        [5, 7, 5, 4, 2, 0],
+        [2, 4, 5, 7, 5, 4, 2]
+      ],
+      "suitable_for": ["focus", "positive energy", "balanced study"],
+      "weather": "clear evening"
+    },
+    {
+      "id": "abheri",
+      "name": "Abheri",
+      "system": "carnatic",
+      "hindustani_equivalent": "bhimpalasi",
+      "hindustani_name": "Bhimpalasi",
+      "melakarta": null,
+      "janya_of": 22,
+      "arohan": [0, 2, 3, 5, 7, 10, 12],
+      "avarohan": [12, 10, 7, 5, 3, 2, 0],
+      "vadi": 7,
+      "samvadi": 3,
+      "mood": "devotional, contemplative, serene",
+      "time": "afternoon",
+      "common_patterns": [
+        [0, 2, 3, 5, 7],
+        [7, 10, 7, 5, 3],
+        [5, 3, 2, 0]
+      ],
+      "characteristic_phrases": [
+        [5, 7, 10, 7, 5],
+        [7, 5, 3, 2, 0],
+        [10, 7, 5, 3, 5, 7]
+      ],
+      "suitable_for": ["afternoon study", "reflection", "focus"],
+      "weather": "cloudy afternoon"
+    },
+    {
+      "id": "natabhairavi",
+      "name": "Natabhairavi",
+      "system": "carnatic",
+      "hindustani_equivalent": "asa_vari",
+      "hindustani_name": "Asa Vari",
+      "melakarta": 20,
       "arohan": [0, 2, 3, 5, 7, 8, 10, 12],
       "avarohan": [12, 10, 8, 7, 5, 3, 2, 0],
       "vadi": 7,
       "samvadi": 3,
-      "pakad": "S g m P d n d P",
-      "mood": "sweet, romantic, devotional",
-      "time": "night (9 PM-12 AM)",
+      "mood": "devotional, serious, introspective",
+      "time": "evening",
       "common_patterns": [
+        [0, 2, 3, 5, 7],
+        [7, 5, 3, 2, 0],
+        [7, 8, 10, 8, 7]
+      ],
+      "characteristic_phrases": [
         [7, 8, 10, 8, 7, 5],
-        [5, 7, 8, 7, 5, 3],
-        [3, 5, 3, 2, 0]
+        [5, 7, 5, 3, 2, 0],
+        [3, 5, 7, 8, 7, 5, 3]
+      ],
+      "suitable_for": ["evening study", "concentration", "emotional balance"],
+      "weather": "rainy evening"
+    },
+    {
+      "id": "bageshri_carnatic",
+      "name": "Bageshri (Carnatic)",
+      "system": "carnatic",
+      "hindustani_equivalent": "bageshri",
+      "hindustani_name": "Bageshri",
+      "melakarta": null,
+      "janya_of": 22,
+      "arohan": [0, 2, 3, 5, 7, 9, 10, 12],
+      "avarohan": [12, 10, 9, 7, 5, 3, 2, 0],
+      "vadi": 7,
+      "samvadi": 3,
+      "mood": "romantic, yearning, devotional",
+      "time": "late evening",
+      "common_patterns": [
+        [0, 2, 3, 5, 7],
+        [7, 9, 10, 9, 7],
+        [7, 5, 3, 2, 0]
+      ],
+      "characteristic_phrases": [
+        [7, 9, 10, 9, 7, 5],
+        [5, 7, 5, 3, 2, 0],
+        [2, 3, 5, 3, 2, 0]
+      ],
+      "suitable_for": ["creative work", "emotional expression", "relaxed focus"],
+      "weather": "clear night"
+    },
+    {
+      "id": "kharaharapriya",
+      "name": "Kharaharapriya",
+      "system": "carnatic",
+      "hindustani_equivalent": "kafi",
+      "hindustani_name": "Kafi",
+      "melakarta": 22,
+      "arohan": [0, 2, 3, 5, 7, 8, 10, 12],
+      "avarohan": [12, 10, 8, 7, 5, 3, 2, 0],
+      "vadi": 7,
+      "samvadi": 3,
+      "mood": "serious, contemplative, balanced",
+      "time": "evening",
+      "common_patterns": [
+        [0, 2, 3, 5, 7],
+        [7, 8, 10, 12],
+        [10, 8, 7, 5, 3, 2, 0]
       ],
       "characteristic_phrases": [
         [5, 7, 8, 10, 8, 7, 5],
-        [10, 12, 10, 8, 7, 8, 7, 5],
-        [5, 3, 2, 0, 2, 3, 2, 0]
+        [7, 5, 3, 5, 7],
+        [3, 2, 0, 2, 3, 5]
       ],
-      "suitable_for": ["evening relaxation", "light focus", "emotional balance"]
+      "suitable_for": ["balanced study", "problem-solving", "focus", "contemplation"],
+      "weather": "twilight"
+    },
+    {
+      "id": "charukesi",
+      "name": "Charukesi",
+      "system": "carnatic",
+      "hindustani_equivalent": null,
+      "hindustani_name": null,
+      "melakarta": null,
+      "janya_of": 26,
+      "arohan": [0, 2, 3, 5, 7, 9, 10, 12],
+      "avarohan": [12, 10, 9, 7, 5, 3, 2, 0],
+      "vadi": 7,
+      "samvadi": 3,
+      "mood": "sweet, pleasant, compassionate",
+      "time": "morning to afternoon",
+      "common_patterns": [
+        [0, 2, 3, 5, 7],
+        [7, 9, 10, 9, 7],
+        [7, 5, 3, 2, 0]
+      ],
+      "characteristic_phrases": [
+        [5, 7, 9, 10, 9, 7, 5],
+        [3, 5, 7, 5, 3, 2, 0],
+        [9, 7, 5, 3, 5, 7]
+      ],
+      "suitable_for": ["morning study", "creativity", "positive energy"],
+      "weather": "sunny morning"
+    },
+    {
+      "id": "amritavarshini",
+      "name": "Amritavarshini",
+      "system": "carnatic",
+      "hindustani_equivalent": null,
+      "hindustani_name": null,
+      "melakarta": null,
+      "janya_of": 66,
+      "arohan": [0, 2, 3, 6, 7, 9, 12],
+      "avarohan": [12, 9, 7, 6, 3, 2, 0],
+      "vadi": 7,
+      "samvadi": 3,
+      "mood": "pleasant, exciting, induces rain",
+      "time": "afternoon",
+      "common_patterns": [
+        [0, 2, 3, 6, 7],
+        [7, 9, 12, 9, 7],
+        [7, 6, 3, 2, 0]
+      ],
+      "characteristic_phrases": [
+        [6, 7, 9, 12, 9, 7, 6],
+        [7, 6, 3, 6, 7],
+        [3, 2, 0, 2, 3, 6]
+      ],
+      "suitable_for": ["focus during rainy weather", "creative inspiration", "relaxation"],
+      "weather": "rainy"
     }
   ],
   "time_categories": {
-    "morning": ["bhairav"],
-    "afternoon": ["bhimpalasi"],
-    "evening": ["yaman"],
-    "night": ["malkauns", "desh", "bageshri"]
+    "morning": ["mayamalavagowla", "bhairavi", "todi", "charukesi"],
+    "afternoon": ["shankarabharanam", "todi", "abheri", "amritavarshini"],
+    "evening": ["kalyani", "keeravani", "hamsadhwani", "mohanam", "harikambhoji", "natabhairavi", "kharaharapriya"],
+    "night": ["hindolam", "darbari_kannada", "bageshri_carnatic"]
   },
   "mood_categories": {
-    "focus": ["yaman", "bhairav", "bhimpalasi"],
-    "deep_concentration": ["bhairav", "malkauns"],
-    "relaxation": ["yaman", "desh", "bageshri"],
-    "creative": ["desh", "bageshri"],
-    "meditative": ["malkauns"]
+    "focus": ["shankarabharanam", "mayamalavagowla", "kalyani", "keeravani", "harikambhoji", "abheri", "kharaharapriya", "darbari_kannada"],
+    "deep_concentration": ["mayamalavagowla", "hindolam", "todi", "darbari_kannada"],
+    "relaxation": ["shankarabharanam", "mohanam", "darbari_kannada", "amritavarshini"],
+    "creative": ["kalyani", "hamsadhwani", "mohanam", "charukesi", "bageshri_carnatic"],
+    "meditative": ["hindolam", "bhairavi", "darbari_kannada"],
+    "devotional": ["shankarabharanam", "kalyani", "bhairavi", "charukesi", "abheri"],
+    "positive_energy": ["harikambhoji", "charukesi"]
+  },
+  "weather_categories": {
+    "rainy": ["amritavarshini", "natabhairavi"],
+    "sunny": ["charukesi", "harikambhoji"],
+    "cloudy": ["abheri", "kharaharapriya"],
+    "moonlit": ["darbari_kannada", "hindolam"],
+    "clear": ["harikambhoji", "bageshri_carnatic"]
+  },
+  "system_mapping": {
+    "carnatic_to_hindustani": {
+      "shankarabharanam": "bilawal",
+      "mayamalavagowla": "bhairav",
+      "kalyani": "yaman",
+      "keeravani": "kafi",
+      "hindolam": "malkauns",
+      "mohanam": "bhupali",
+      "bhairavi": "bhairavi",
+      "todi": "todi",
+      "darbari_kannada": "darbari",
+      "harikambhoji": "khamaj",
+      "abheri": "bhimpalasi",
+      "natabhairavi": "asa_vari",
+      "bageshri_carnatic": "bageshri",
+      "kharaharapriya": "kafi"
+    },
+    "hindustani_to_carnatic": {
+      "bilawal": "shankarabharanam",
+      "bhairav": "mayamalavagowla",
+      "yaman": "kalyani",
+      "kafi": ["keeravani", "kharaharapriya"],
+      "malkauns": "hindolam",
+      "bhupali": "mohanam",
+      "bhairavi": "bhairavi",
+      "todi": "todi",
+      "darbari": "darbari_kannada",
+      "khamaj": "harikambhoji",
+      "bhimpalasi": "abheri",
+      "asa_vari": "natabhairavi",
+      "bageshri": "bageshri_carnatic"
+    }
+  },
+  "melakarta_info": {
+    "8": {
+      "name": "Hanumatodi",
+      "arohan": [0, 1, 3, 5, 7, 8, 10, 12],
+      "description": "Parent of many profound ragas like Todi"
+    },
+    "15": {
+      "name": "Mayamalavagowla",
+      "arohan": [0, 1, 4, 5, 7, 8, 11, 12],
+      "description": "Fundamental morning raga with serious/profound character"
+    },
+    "20": {
+      "name": "Natabhairavi",
+      "arohan": [0, 2, 3, 5, 7, 8, 10, 12],
+      "description": "Evokes devotion and introspection"
+    },
+    "21": {
+      "name": "Keeravani",
+      "arohan": [0, 2, 3, 5, 7, 9, 10, 12],
+      "description": "Creates a mood of pathos and introspection"
+    },
+    "22": {
+      "name": "Kharaharapriya",
+      "arohan": [0, 2, 3, 5, 7, 8, 10, 12],
+      "description": "One of the most important melakartas, parent to many popular ragas"
+    },
+    "26": {
+      "name": "Charukesi",
+      "arohan": [0, 2, 3, 5, 7, 9, 10, 12],
+      "description": "Sweet and pleasant, versatile for many emotions"
+    },
+    "28": {
+      "name": "Harikambhoji",
+      "arohan": [0, 2, 4, 5, 7, 9, 10, 12],
+      "description": "Bright and pleasant, associated with joy"
+    },
+    "29": {
+      "name": "Shankarabharanam",
+      "arohan": [0, 2, 4, 5, 7, 9, 11, 12],
+      "description": "Equivalent to the Western major scale, versatile and majestic"
+    },
+    "65": {
+      "name": "Kalyani",
+      "arohan": [0, 2, 4, 6, 7, 9, 11, 12],
+      "description": "Uplifting and majestic, considered auspicious"
+    },
+    "66": {
+      "name": "Chithrambari",
+      "arohan": [0, 2, 4, 6, 7, 9, 10, 12],
+      "description": "Parent to Amritavarshini, associated with pleasant moods"
+    }
   }
 }

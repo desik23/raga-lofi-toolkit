@@ -36,6 +36,7 @@ class RagaLoFiApp:
         self._create_generation_controls()
         self._create_output_display()
         self._create_status_bar()
+        self._create_notation_display()
         
         # Set default values
         self._set_defaults()
@@ -63,9 +64,34 @@ class RagaLoFiApp:
         ).pack(side=tk.LEFT)
     
     def _create_raga_selection(self):
-        """Create the raga selection section."""
+        """Create the raga selection section with Carnatic support."""
         raga_frame = ttk.LabelFrame(self.main_frame, text="Raga Selection", padding=10)
         raga_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # Add system selection radiobuttons
+        system_frame = ttk.Frame(raga_frame)
+        system_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(system_frame, text="Music System:").pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.system_var = tk.StringVar(value="both")
+        ttk.Radiobutton(
+            system_frame, text="Hindustani", 
+            variable=self.system_var, value="hindustani",
+            command=self._filter_ragas_by_system
+        ).pack(side=tk.LEFT, padx=(0, 10))
+        
+        ttk.Radiobutton(
+            system_frame, text="Carnatic", 
+            variable=self.system_var, value="carnatic",
+            command=self._filter_ragas_by_system
+        ).pack(side=tk.LEFT, padx=(0, 10))
+        
+        ttk.Radiobutton(
+            system_frame, text="Both", 
+            variable=self.system_var, value="both",
+            command=self._filter_ragas_by_system
+        ).pack(side=tk.LEFT)
         
         # Selection method tabs
         self.selection_tabs = ttk.Notebook(raga_frame)
@@ -80,15 +106,30 @@ class RagaLoFiApp:
         
         # Get available ragas
         self.available_ragas = self.generator.list_available_ragas()
-        self.raga_options = [f"{raga['name']} - {raga['mood']}" for raga in self.available_ragas]
-        self.raga_ids = [raga['id'] for raga in self.available_ragas]
+        self.raga_options = []
+        self.raga_ids = []
+        
+        for raga in self.available_ragas:
+            system_tag = ""
+            if hasattr(self.generator, 'carnatic') and 'system' in raga:
+                system_tag = f" ({raga['system'].capitalize()})"
+            
+            # Show equivalent raga if available
+            equivalent = ""
+            if 'hindustani_name' in raga and raga['hindustani_name']:
+                equivalent = f" ≈ {raga['hindustani_name']} (Hindustani)"
+            elif 'carnatic_name' in raga and raga['carnatic_name']:
+                equivalent = f" ≈ {raga['carnatic_name']} (Carnatic)"
+                
+            self.raga_options.append(f"{raga['name']}{system_tag} - {raga['mood']}{equivalent}")
+            self.raga_ids.append(raga['id'])
         
         self.selected_raga = tk.StringVar()
         self.raga_dropdown = ttk.Combobox(
             direct_frame, 
             textvariable=self.selected_raga,
             values=self.raga_options,
-            width=50,
+            width=60,
             state="readonly"
         )
         self.raga_dropdown.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
@@ -124,7 +165,7 @@ class RagaLoFiApp:
             time_frame, 
             textvariable=self.time_ragas_var,
             values=[],
-            width=50,
+            width=60,
             state="readonly"
         )
         self.time_ragas_dropdown.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
@@ -137,7 +178,7 @@ class RagaLoFiApp:
         # Mood selection
         ttk.Label(mood_frame, text="Mood:").grid(row=0, column=0, sticky=tk.W, pady=5)
         
-        self.mood_options = ["focus", "deep_concentration", "relaxation", "creative", "meditative"]
+        self.mood_options = ["focus", "deep_concentration", "relaxation", "creative", "meditative", "devotional"]
         self.selected_mood = tk.StringVar()
         self.mood_dropdown = ttk.Combobox(
             mood_frame, 
@@ -156,23 +197,75 @@ class RagaLoFiApp:
             mood_frame, 
             textvariable=self.mood_ragas_var,
             values=[],
-            width=50,
+            width=60,
             state="readonly"
         )
         self.mood_ragas_dropdown.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
         self.mood_ragas_dropdown.bind("<<ComboboxSelected>>", self._on_mood_raga_selected)
-    
+        
+        # Tab 4: Carnatic specific selection (Melakarta)
+        if hasattr(self.generator, 'carnatic'):
+            melakarta_frame = ttk.Frame(self.selection_tabs, padding=10)
+            self.selection_tabs.add(melakarta_frame, text="Melakarta")
+            
+            # Melakarta selection
+            ttk.Label(melakarta_frame, text="Melakarta Parent:").grid(row=0, column=0, sticky=tk.W, pady=5)
+            
+            # Get all unique melakarta numbers
+            melakarta_numbers = sorted(list(set(
+                raga.get('melakarta') for raga in self.generator.ragas_data.values() 
+                if raga.get('melakarta') is not None
+            )))
+            
+            # Create option list with names if available
+            melakarta_options = []
+            for num in melakarta_numbers:
+                # Find a raga with this melakarta number to get its name
+                for raga in self.generator.ragas_data.values():
+                    if raga.get('melakarta') == num:
+                        melakarta_options.append(f"{num}: {raga['name']}")
+                        break
+                else:
+                    melakarta_options.append(str(num))
+            
+            self.melakarta_var = tk.StringVar()
+            self.melakarta_dropdown = ttk.Combobox(
+                melakarta_frame, 
+                textvariable=self.melakarta_var,
+                values=melakarta_options,
+                width=40,
+                state="readonly"
+            )
+            self.melakarta_dropdown.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
+            self.melakarta_dropdown.bind("<<ComboboxSelected>>", self._on_melakarta_selected)
+            
+            # Ragas for selected melakarta
+            ttk.Label(melakarta_frame, text="Available Ragas:").grid(row=1, column=0, sticky=tk.W, pady=5)
+            self.melakarta_ragas_var = tk.StringVar()
+            self.melakarta_ragas_dropdown = ttk.Combobox(
+                melakarta_frame, 
+                textvariable=self.melakarta_ragas_var,
+                values=[],
+                width=60,
+                state="readonly"
+            )
+            self.melakarta_ragas_dropdown.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+            self.melakarta_ragas_dropdown.bind("<<ComboboxSelected>>", self._on_melakarta_raga_selected)
+        
     def _create_parameters(self):
-        """Create parameter controls."""
+        """Create parameter controls with Carnatic enhancements."""
         params_frame = ttk.LabelFrame(self.main_frame, text="Generation Parameters", padding=10)
         params_frame.pack(fill=tk.X, pady=(0, 15))
         
-        # Create two columns
+        # Create three columns
         left_frame = ttk.Frame(params_frame)
         left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
+        middle_frame = ttk.Frame(params_frame)
+        middle_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
         right_frame = ttk.Frame(params_frame)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Left column - BPM
         bpm_frame = ttk.Frame(left_frame)
@@ -195,47 +288,51 @@ class RagaLoFiApp:
         self.bpm_label.pack(side=tk.LEFT, padx=(0, 10))
         
         # Left column - Use patterns
-        self.use_patterns_var = tk.BooleanVar()
+        pattern_frame = ttk.Frame(left_frame)
+        pattern_frame.pack(fill=tk.X, pady=5)
+        
+        self.use_patterns_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(
-            left_frame, 
+            pattern_frame, 
             text="Use characteristic patterns", 
             variable=self.use_patterns_var
+        ).pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Left column - Traditional rules toggle
+        self.strict_rules_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            left_frame, 
+            text="Follow traditional raga rules strictly", 
+            variable=self.strict_rules_var
         ).pack(anchor=tk.W, pady=5)
         
-        # Right column - Base note
-        base_note_frame = ttk.Frame(right_frame)
-        base_note_frame.pack(fill=tk.X, pady=5)
+        # Middle column - Gamaka intensity
+        gamaka_frame = ttk.Frame(middle_frame)
+        gamaka_frame.pack(fill=tk.X, pady=5)
         
-        ttk.Label(base_note_frame, text="Base note:").pack(side=tk.LEFT)
+        ttk.Label(gamaka_frame, text="Gamaka Intensity:").pack(side=tk.LEFT)
         
-        self.base_notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-        self.base_note_var = tk.StringVar()
-        self.base_note_dropdown = ttk.Combobox(
-            base_note_frame, 
-            textvariable=self.base_note_var,
-            values=self.base_notes,
-            width=5,
-            state="readonly"
+        self.gamaka_var = tk.DoubleVar(value=1.0)
+        self.gamaka_scale = ttk.Scale(
+            gamaka_frame, 
+            from_=0.0, 
+            to=2.0, 
+            orient=tk.HORIZONTAL, 
+            variable=self.gamaka_var,
+            command=self._update_gamaka_label
         )
-        self.base_note_dropdown.pack(side=tk.LEFT, padx=5)
+        self.gamaka_scale.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=10)
         
-        self.octave_var = tk.IntVar()
-        self.octave_dropdown = ttk.Combobox(
-            base_note_frame, 
-            textvariable=self.octave_var,
-            values=[3, 4, 5],
-            width=3,
-            state="readonly"
-        )
-        self.octave_dropdown.pack(side=tk.LEFT, padx=5)
+        self.gamaka_label = ttk.Label(gamaka_frame, text="Normal (1.0)")
+        self.gamaka_label.pack(side=tk.LEFT, padx=(0, 10))
         
-        # Right column - Melody length
-        melody_length_frame = ttk.Frame(right_frame)
+        # Middle column - Melody length
+        melody_length_frame = ttk.Frame(middle_frame)
         melody_length_frame.pack(fill=tk.X, pady=5)
         
         ttk.Label(melody_length_frame, text="Melody length:").pack(side=tk.LEFT)
         
-        self.melody_length_var = tk.IntVar()
+        self.melody_length_var = tk.IntVar(value=32)
         self.melody_length_dropdown = ttk.Combobox(
             melody_length_frame, 
             textvariable=self.melody_length_var,
@@ -245,6 +342,248 @@ class RagaLoFiApp:
         )
         self.melody_length_dropdown.pack(side=tk.LEFT, padx=5)
         ttk.Label(melody_length_frame, text="notes").pack(side=tk.LEFT)
+        
+        # Right column - Base note
+        base_note_frame = ttk.Frame(right_frame)
+        base_note_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(base_note_frame, text="Base note:").pack(side=tk.LEFT)
+        
+        self.base_notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+        self.base_note_var = tk.StringVar(value="C")
+        self.base_note_dropdown = ttk.Combobox(
+            base_note_frame, 
+            textvariable=self.base_note_var,
+            values=self.base_notes,
+            width=5,
+            state="readonly"
+        )
+        self.base_note_dropdown.pack(side=tk.LEFT, padx=5)
+        
+        self.octave_var = tk.IntVar(value=4)
+        self.octave_dropdown = ttk.Combobox(
+            base_note_frame, 
+            textvariable=self.octave_var,
+            values=[3, 4, 5],
+            width=3,
+            state="readonly"
+        )
+        self.octave_dropdown.pack(side=tk.LEFT, padx=5)
+        
+        # Right column - Notation display preference
+        notation_frame = ttk.Frame(right_frame)
+        notation_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(notation_frame, text="Show notation:").pack(side=tk.LEFT)
+        
+        self.notation_var = tk.StringVar(value="western")
+        notation_dropdown = ttk.Combobox(
+            notation_frame,
+            textvariable=self.notation_var,
+            values=["western", "hindustani", "carnatic", "all"],
+            width=12,
+            state="readonly"
+        )
+        notation_dropdown.pack(side=tk.LEFT, padx=5)
+
+
+    def _update_gamaka_label(self, value):
+        """Update Gamaka intensity label when slider is moved."""
+        value = float(value)
+        if value < 0.1:
+            label = "None (0.0)"
+        elif value < 0.5:
+            label = "Light ({:.1f})".format(value)
+        elif value < 0.9:
+            label = "Medium ({:.1f})".format(value)
+        elif value < 1.5:
+            label = "Normal ({:.1f})".format(value)
+        else:
+            label = "Heavy ({:.1f})".format(value)
+            
+        self.gamaka_label.config(text=label)
+
+
+    def _create_notation_display(self):
+        """Create a section to display raga notes in different notation systems."""
+        notation_frame = ttk.LabelFrame(self.main_frame, text="Raga Notation", padding=10)
+        notation_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # Create a Text widget to display the notation
+        self.notation_text = tk.Text(notation_frame, wrap=tk.WORD, height=3)
+        self.notation_text.pack(fill=tk.X)
+        
+        # Configure tags for formatting
+        self.notation_text.tag_configure("title", font=("Helvetica", 11, "bold"))
+        self.notation_text.tag_configure("notation", font=("Courier", 10))
+        
+        # Make read-only
+        self.notation_text.config(state=tk.DISABLED)
+
+
+    def _update_notation_display(self, raga_id):
+        """Update the notation display based on selected raga and notation preference."""
+        if raga_id not in self.generator.ragas_data:
+            return
+            
+        raga = self.generator.ragas_data[raga_id]
+        notation_pref = self.notation_var.get()
+        
+        # Enable text widget for editing
+        self.notation_text.config(state=tk.NORMAL)
+        
+        # Clear previous content
+        self.notation_text.delete(1.0, tk.END)
+        
+        # Insert raga name
+        self.notation_text.insert(tk.END, f"{raga['name']} - ", "title")
+        
+        # Get scale degrees
+        arohan = raga.get('arohan', [])
+        avarohan = raga.get('avarohan', [])
+        
+        # Convert to different notation systems
+        western = self._get_western_notation(arohan, avarohan)
+        hindustani = self._get_hindustani_notation(arohan, avarohan)
+        carnatic = self._get_carnatic_notation(arohan, avarohan)
+        
+        # Display based on preference
+        if notation_pref == "western" or notation_pref == "all":
+            self.notation_text.insert(tk.END, "Western: ", "title")
+            self.notation_text.insert(tk.END, western + "\n", "notation")
+            
+        if notation_pref == "hindustani" or notation_pref == "all":
+            self.notation_text.insert(tk.END, "Hindustani: ", "title")
+            self.notation_text.insert(tk.END, hindustani + "\n", "notation")
+            
+        if notation_pref == "carnatic" or notation_pref == "all":
+            self.notation_text.insert(tk.END, "Carnatic: ", "title")
+            self.notation_text.insert(tk.END, carnatic, "notation")
+        
+        # Make read-only again
+        self.notation_text.config(state=tk.DISABLED)
+
+
+    def _get_western_notation(self, arohan, avarohan):
+        """Convert scale degrees to Western notation."""
+        western_notes = ["C", "C#/Db", "D", "D#/Eb", "E", "F", "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", "B"]
+        
+        # Get base note
+        base_idx = self.base_notes.index(self.base_note_var.get())
+        
+        # Convert arohan
+        arohan_notes = []
+        for degree in arohan:
+            note_idx = (base_idx + degree) % 12
+            arohan_notes.append(western_notes[note_idx])
+        
+        # Convert avarohan
+        avarohan_notes = []
+        for degree in avarohan:
+            note_idx = (base_idx + degree) % 12
+            avarohan_notes.append(western_notes[note_idx])
+        
+        return "↑ " + " ".join(arohan_notes) + " | ↓ " + " ".join(avarohan_notes)
+
+
+    def _get_hindustani_notation(self, arohan, avarohan):
+        """Convert scale degrees to Hindustani notation."""
+        # Basic mapping
+        hindustani_notes = {
+            0: "Sa",
+            1: "re",
+            2: "Re",
+            3: "ga",
+            4: "Ga",
+            5: "ma",
+            6: "Ma",
+            7: "Pa",
+            8: "dha",
+            9: "Dha",
+            10: "ni",
+            11: "Ni",
+            12: "Sa'"
+        }
+        
+        # Convert arohan
+        arohan_notes = [hindustani_notes.get(degree, str(degree)) for degree in arohan]
+        
+        # Convert avarohan
+        avarohan_notes = [hindustani_notes.get(degree, str(degree)) for degree in avarohan]
+        
+        return "↑ " + " ".join(arohan_notes) + " | ↓ " + " ".join(avarohan_notes)
+
+
+    def _get_carnatic_notation(self, arohan, avarohan):
+        """Convert scale degrees to Carnatic notation."""
+        # Carnatic notation is more complex with multiple variants of each note
+        carnatic_notes = {
+            0: "Sa",
+            1: "Ri₁",
+            2: "Ri₂",
+            3: "Ga₁",
+            4: "Ga₂",
+            5: "Ma₁",
+            6: "Ma₂",
+            7: "Pa",
+            8: "Dha₁",
+            9: "Dha₂",
+            10: "Ni₁",
+            11: "Ni₂",
+            12: "Sa'"
+        }
+        
+        # Convert arohan
+        arohan_notes = [carnatic_notes.get(degree, str(degree)) for degree in arohan]
+        
+        # Convert avarohan
+        avarohan_notes = [carnatic_notes.get(degree, str(degree)) for degree in avarohan]
+        
+        return "↑ " + " ".join(arohan_notes) + " | ↓ " + " ".join(avarohan_notes)
+
+
+    def _on_raga_selected(self, event):
+        """Update display when raga is selected, with notation display."""
+        if not self.selected_raga.get():
+            return
+            
+        # Find the selected raga (existing code...)
+        idx = self.raga_dropdown.current()
+        if idx >= 0:
+            # Use filtered IDs if filtering by system
+            if hasattr(self, 'filtered_raga_ids') and self.filtered_raga_ids:
+                selected_id = self.filtered_raga_ids[idx]
+            else:
+                selected_id = self.raga_ids[idx]
+                
+            raga_data = self.generator.ragas_data.get(selected_id, {})
+            
+            # Update description (existing code...)
+            description = f"System: {raga_data.get('system', 'hindustani').capitalize()}\n"
+            
+            # Show equivalent if available
+            if raga_data.get('hindustani_equivalent'):
+                h_name = raga_data.get('hindustani_name', raga_data.get('hindustani_equivalent'))
+                description += f"Hindustani Equivalent: {h_name}\n"
+            elif raga_data.get('carnatic_equivalent'):
+                c_name = raga_data.get('carnatic_name', raga_data.get('carnatic_equivalent'))
+                description += f"Carnatic Equivalent: {c_name}\n"
+                
+            # Show melakarta for Carnatic ragas
+            if raga_data.get('melakarta'):
+                description += f"Melakarta: {raga_data.get('melakarta')}\n"
+                
+            description += f"Time: {raga_data.get('time', 'N/A')}\n"
+            description += f"Mood: {raga_data.get('mood', 'N/A')}\n"
+            description += f"Suitable for: {', '.join(raga_data.get('suitable_for', ['N/A']))}"
+            
+            self.raga_description.config(text=description)
+            
+            # Update notation display
+            self._update_notation_display(selected_id)
+
+
+
     
     def _create_generation_controls(self):
         """Create generation control buttons."""
@@ -375,23 +714,7 @@ class RagaLoFiApp:
         """Update BPM label when slider is moved."""
         self.bpm_label.config(text=str(int(float(value))))
     
-    def _on_raga_selected(self, event):
-        """Update display when raga is selected."""
-        if not self.selected_raga.get():
-            return
-            
-        # Find the selected raga
-        idx = self.raga_dropdown.current()
-        if idx >= 0:
-            selected_id = self.raga_ids[idx]
-            raga_data = self.generator.ragas_data.get(selected_id, {})
-            
-            # Update description
-            description = f"Time: {raga_data.get('time', 'N/A')}\n"
-            description += f"Mood: {raga_data.get('mood', 'N/A')}\n"
-            description += f"Suitable for: {', '.join(raga_data.get('suitable_for', ['N/A']))}"
-            
-            self.raga_description.config(text=description)
+
     
     def _on_time_selected(self, event):
         """Update ragas list when time is selected."""
@@ -484,7 +807,154 @@ class RagaLoFiApp:
                 
                 # Switch to the main tab
                 self.selection_tabs.select(0)
-    
+    def _filter_ragas_by_system(self):
+        """Filter ragas based on selected music system."""
+        system = self.system_var.get()
+        
+        if not hasattr(self.generator, 'carnatic'):
+            return
+        
+        # Filter ragas
+        filtered_ragas = []
+        filtered_ids = []
+        
+        for i, raga in enumerate(self.available_ragas):
+            raga_id = self.raga_ids[i]
+            raga_data = self.generator.ragas_data.get(raga_id, {})
+            raga_system = raga_data.get('system', 'hindustani')  # Default to hindustani for backward compatibility
+            
+            if system == 'both' or system == raga_system:
+                filtered_ragas.append(self.raga_options[i])
+                filtered_ids.append(raga_id)
+        
+        # Update dropdown
+        self.raga_dropdown.config(values=filtered_ragas)
+        # Store the filtered IDs
+        self.filtered_raga_ids = filtered_ids
+        
+        # Reset selection if needed
+        if self.raga_dropdown.get() not in filtered_ragas:
+            if filtered_ragas:
+                self.raga_dropdown.current(0)
+                self._on_raga_selected(None)
+            else:
+                self.selected_raga.set('')
+                self.raga_description.config(text="No ragas available for selected system")
+
+
+    def _on_melakarta_selected(self, event):
+        """Update ragas list when melakarta is selected."""
+        if not hasattr(self.generator, 'carnatic') or not self.melakarta_var.get():
+            return
+            
+        # Extract melakarta number from selection
+        melakarta_str = self.melakarta_var.get()
+        melakarta_num = int(melakarta_str.split(':')[0])
+        
+        # Get ragas for this melakarta
+        raga_ids = self.generator.carnatic.get_ragas_by_melakarta(melakarta_num)
+        
+        # Update dropdown
+        if raga_ids:
+            raga_options = []
+            for raga_id in raga_ids:
+                if raga_id in self.generator.ragas_data:
+                    raga = self.generator.ragas_data[raga_id]
+                    equivalent = ""
+                    if raga.get('hindustani_name'):
+                        equivalent = f" ≈ {raga['hindustani_name']} (Hindustani)"
+                    raga_options.append(f"{raga['name']} - {raga['mood']}{equivalent}")
+            
+            self.melakarta_ragas_dropdown.config(values=raga_options)
+            self.melakarta_ragas_dropdown.current(0)
+            self.melakarta_ragas_var.set(raga_options[0])
+            
+            # Store the raga ids for reference
+            self.melakarta_raga_ids = raga_ids
+        else:
+            self.melakarta_ragas_dropdown.config(values=["No ragas available"])
+            self.melakarta_ragas_dropdown.current(0)
+            self.melakarta_raga_ids = []
+
+
+    def _on_melakarta_raga_selected(self, event):
+        """Handle selection of raga from melakarta tab."""
+        if not hasattr(self, 'melakarta_raga_ids') or not self.melakarta_raga_ids:
+            return
+            
+        idx = self.melakarta_ragas_dropdown.current()
+        if idx >= 0 and idx < len(self.melakarta_raga_ids):
+            # Find the matching raga in the main dropdown
+            selected_id = self.melakarta_raga_ids[idx]
+            
+            # Check if we need to update system filter
+            system = self.system_var.get()
+            if system != 'both' and system != 'carnatic':
+                self.system_var.set('carnatic')
+                self._filter_ragas_by_system()
+            
+            # Find the index in filtered list
+            if hasattr(self, 'filtered_raga_ids') and selected_id in self.filtered_raga_ids:
+                filtered_idx = self.filtered_raga_ids.index(selected_id)
+                self.raga_dropdown.current(filtered_idx)
+                self._on_raga_selected(None)
+            
+            # Switch to the main tab
+            self.selection_tabs.select(0)
+    def _generate_thread(self, raga_id, base_note, bpm, use_patterns, melody_length):
+        """Thread function for file generation with gamaka support."""
+        try:
+            generated_files = {}
+            
+            # Get additional parameters
+            gamaka_intensity = self.gamaka_var.get()
+            strict_rules = self.strict_rules_var.get()
+            
+            # Generate selected components
+            if self.melody_var.get():
+                melody_file = self.generator.generate_melody(
+                    raga_id, 
+                    length=melody_length,
+                    use_patterns=use_patterns,
+                    base_note=base_note,
+                    bpm=bpm,
+                    gamaka_intensity=gamaka_intensity,
+                    strict_rules=strict_rules
+                )
+                generated_files['Melody'] = melody_file
+            
+            if self.chords_var.get():
+                chord_file = self.generator.generate_chord_progression(
+                    raga_id,
+                    length=4,
+                    base_note=base_note-12,
+                    bpm=bpm,
+                    strict_rules=strict_rules
+                )
+                generated_files['Chords'] = chord_file
+            
+            if self.bass_var.get():
+                bass_file = self.generator.generate_bass_line(
+                    raga_id,
+                    length=melody_length,
+                    base_note=base_note-24,
+                    bpm=bpm
+                )
+                generated_files['Bass'] = bass_file
+            
+            # Update UI in the main thread
+            self.root.after(0, lambda: self._update_output_display(
+                self.generator.ragas_data[raga_id]['name'],
+                generated_files
+            ))
+            
+            # Update status in the main thread
+            self.root.after(0, lambda: self.status_var.set("Generation complete"))
+            
+        except Exception as e:
+            # Show error in the main thread
+            self.root.after(0, lambda: messagebox.showerror("Error", str(e)))
+            self.root.after(0, lambda: self.status_var.set("Error generating files"))
     def _generate_files(self):
         """Generate MIDI files based on current settings."""
         # Get selected raga
@@ -514,54 +984,6 @@ class RagaLoFiApp:
             target=self._generate_thread, 
             args=(selected_id, base_note, bpm, use_patterns, melody_length)
         ).start()
-    
-    def _generate_thread(self, raga_id, base_note, bpm, use_patterns, melody_length):
-        """Thread function for file generation."""
-        try:
-            generated_files = {}
-            
-            # Generate selected components
-            if self.melody_var.get():
-                melody_file = self.generator.generate_melody(
-                    raga_id, 
-                    length=melody_length,
-                    use_patterns=use_patterns,
-                    base_note=base_note,
-                    bpm=bpm
-                )
-                generated_files['Melody'] = melody_file
-            
-            if self.chords_var.get():
-                chord_file = self.generator.generate_chord_progression(
-                    raga_id,
-                    length=4,
-                    base_note=base_note-12,
-                    bpm=bpm
-                )
-                generated_files['Chords'] = chord_file
-            
-            if self.bass_var.get():
-                bass_file = self.generator.generate_bass_line(
-                    raga_id,
-                    length=melody_length,
-                    base_note=base_note-24,
-                    bpm=bpm
-                )
-                generated_files['Bass'] = bass_file
-            
-            # Update UI in the main thread
-            self.root.after(0, lambda: self._update_output_display(
-                self.generator.ragas_data[raga_id]['name'],
-                generated_files
-            ))
-            
-            # Update status in the main thread
-            self.root.after(0, lambda: self.status_var.set("Generation complete"))
-            
-        except Exception as e:
-            # Show error in the main thread
-            self.root.after(0, lambda: messagebox.showerror("Error", str(e)))
-            self.root.after(0, lambda: self.status_var.set("Error generating files"))
     
     def _update_output_display(self, raga_name, generated_files):
         """Update the output display with generated files."""
@@ -689,3 +1111,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = RagaLoFiApp(root)
     root.mainloop()
+
+
+
+
