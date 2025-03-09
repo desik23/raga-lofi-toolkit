@@ -1043,7 +1043,8 @@ class RagaLoFiApp:
         self.feedback_raga_dropdown.pack(side=tk.LEFT, padx=(0, 10))
         
         ttk.Button(feedback_section, text="Submit Feedback", command=self._submit_feedback).pack(side=tk.LEFT)
-        
+        # Inside your _create_identifier_ui method, add this after the feedback section:
+        ttk.Button(feedback_section, text="Populate Dropdown", command=self._populate_raga_dropdown).pack(side=tk.LEFT, padx=10)
         # Performance metrics section
         metrics_section = ttk.LabelFrame(self.identifier_frame, text="Performance Metrics", padding=10)
         metrics_section.pack(fill=tk.X)
@@ -1074,6 +1075,12 @@ class RagaLoFiApp:
         self.file_path_var.set(file_path)
         self.status_var.set(f"Identifying raga in {os.path.basename(file_path)}...")
         
+        # Enable and clear results text
+        self.results_text.config(state=tk.NORMAL)
+        self.results_text.delete(1.0, tk.END)
+        self.results_text.insert(tk.END, f"Analyzing {os.path.basename(file_path)}...\n")
+        self.results_text.config(state=tk.DISABLED)
+        
         # Run identification in a separate thread to keep UI responsive
         threading.Thread(
             target=self._identify_raga_thread,
@@ -1083,24 +1090,34 @@ class RagaLoFiApp:
     def _identify_raga_thread(self, file_path):
         """Thread function for raga identification."""
         try:
+            # Update status
+            self.root.after(0, lambda: self._update_text_status("Processing audio..."))
+            
             # Identify raga
             results = self.identifier.identify_raga(file_path, preprocess=True)
             
             # Update UI in the main thread
-            self.root.after(0, lambda: self._update_identification_results(results))
-            
+            if results:
+                self.root.after(0, lambda: self._update_identification_results(results))
+            else:
+                self.root.after(0, lambda: self._update_text_status("No results found. Check console for errors."))
+                
         except Exception as e:
-            # Show error in the main thread
-            self.root.after(0, lambda: messagebox.showerror("Error", str(e)))
+            error_msg = f"Error identifying raga: {str(e)}"
+            self.root.after(0, lambda: self._update_text_status(error_msg))
             self.root.after(0, lambda: self.status_var.set("Error identifying raga"))
+            import traceback
+            traceback.print_exc()
+
+    def _update_text_status(self, message):
+        """Update the results text with a status message."""
+        self.results_text.config(state=tk.NORMAL)
+        self.results_text.insert(tk.END, f"\n{message}\n")
+        self.results_text.see(tk.END)
+        self.results_text.config(state=tk.DISABLED)
 
     def _update_identification_results(self, results):
         """Update the identification results display."""
-        if not results:
-            messagebox.showerror("Error", "Failed to identify raga")
-            self.status_var.set("Failed to identify raga")
-            return
-        
         # Enable text widget for editing
         self.results_text.config(state=tk.NORMAL)
         
@@ -1108,8 +1125,34 @@ class RagaLoFiApp:
         self.results_text.delete(1.0, tk.END)
         
         # Add identification results
-        description = self.identifier.get_description()
-        self.results_text.insert(tk.END, description)
+        if not results:
+            self.results_text.insert(tk.END, "No raga matches found.\n\n")
+            self.results_text.insert(tk.END, "The audio analysis did not find a clear match with known ragas.\n")
+            self.results_text.insert(tk.END, "You can still provide feedback below to help improve the system.")
+        else:
+            # Try to use the get_description method
+            try:
+                description = self.identifier.get_description()
+                self.results_text.insert(tk.END, description)
+            except Exception as e:
+                # Fallback to basic display
+                self.results_text.insert(tk.END, f"Raga Analysis Results:\n\n")
+                
+                # Display matches if available
+                if ('overall_results' in results and 
+                    'top_matches' in results['overall_results'] and 
+                    results['overall_results']['top_matches']):
+                    
+                    top_matches = results['overall_results']['top_matches']
+                    for i, match in enumerate(top_matches):
+                        raga_id = match.get('raga_id', 'Unknown')
+                        raga_name = match.get('raga_name', 'Unknown')
+                        confidence = match.get('confidence', 0.0)
+                        
+                        self.results_text.insert(tk.END, f"{i+1}. {raga_name} ({raga_id}) - Confidence: {confidence:.2f}\n")
+                else:
+                    self.results_text.insert(tk.END, "No clear raga matches found.\n")
+                    self.results_text.insert(tk.END, "Please provide feedback below to help improve the system.")
         
         # Make read-only again
         self.results_text.config(state=tk.DISABLED)
@@ -1117,30 +1160,42 @@ class RagaLoFiApp:
         # Update status
         self.status_var.set("Raga identification complete")
         
-        # Populate feedback dropdown with all available ragas
+        # Populate the feedback dropdown with all available ragas
+        self._populate_raga_dropdown()
+
+    def _populate_raga_dropdown(self):
+        """Populate the feedback dropdown with all available ragas without bias."""
         all_ragas = []
         
-        # Get ragas from the available models
-        for raga_id, model in self.identifier.feature_extractor.raga_models.items():
-            raga_name = "Unknown"
-            if isinstance(model, dict):
-                if 'metadata' in model and 'raga_name' in model['metadata']:
-                    raga_name = model['metadata']['raga_name']
-                elif 'name' in model:
-                    raga_name = model['name']
-            
-            all_ragas.append(f"{raga_name} ({raga_id})")
+        # Get all available raga models
+        if hasattr(self.identifier, 'feature_extractor') and hasattr(self.identifier.feature_extractor, 'raga_models'):
+            for raga_id, model in self.identifier.feature_extractor.raga_models.items():
+                raga_name = "Unknown"
+                if isinstance(model, dict):
+                    if 'metadata' in model and 'raga_name' in model['metadata']:
+                        raga_name = model['metadata']['raga_name']
+                    elif 'name' in model:
+                        raga_name = model['name']
+                    else:
+                        raga_name = raga_id.capitalize()
+                
+                all_ragas.append(f"{raga_name} ({raga_id})")
+        
+        # If no ragas in models, provide a way to add a new one
+        if not all_ragas:
+            all_ragas.append("New Raga (add_new)")
         
         # Sort alphabetically
         all_ragas.sort()
         
+        # Update the dropdown values
         self.feedback_raga_dropdown.config(values=all_ragas)
         
-        # Set the top match as the default selection
-        if ('overall_results' in results and 'top_matches' in results['overall_results'] 
-            and results['overall_results']['top_matches']):
-            top_match = results['overall_results']['top_matches'][0]
-            self.feedback_raga_var.set(f"{top_match['raga_name']} ({top_match['raga_id']})")
+        # Don't auto-select anything - let the user choose
+        if not self.feedback_raga_var.get() and all_ragas:
+            # Only set a default value if there are actual ragas
+            self.feedback_raga_var.set("")
+            self.feedback_raga_dropdown.set("")
             
     def _submit_feedback(self):
         """Submit feedback on the identified raga."""
@@ -1157,8 +1212,9 @@ class RagaLoFiApp:
             raga_name = raga_parts[0]
             raga_id = raga_parts[1].rstrip(")")
         except IndexError:
-            messagebox.showerror("Error", "Invalid raga format")
-            return
+            # Fallback if the format is different
+            raga_id = feedback_raga
+            raga_name = feedback_raga
         
         # Add the file to the dataset with the correct raga ID
         file_path = self.file_path_var.get()
@@ -1167,30 +1223,49 @@ class RagaLoFiApp:
             messagebox.showerror("Error", "No audio file loaded")
             return
         
-        # Add file to dataset
-        result = self.dataset_manager.add_file(file_path, raga_id, raga_name)
+        # Verify dataset manager
+        if not hasattr(self, 'dataset_manager'):
+            self.dataset_manager = RagaDatasetManager()
         
-        if result:
-            # Provide feedback to the identifier
-            success = self.identifier.provide_feedback(
-                self.identifier.analysis_results,
-                raga_id,
-                raga_name,
-                update_model=True
-            )
+        # Update text status
+        self._update_text_status(f"Submitting feedback: {raga_name} ({raga_id})")
+        
+        # Add file to dataset
+        try:
+            result = self.dataset_manager.add_file(file_path, raga_id, raga_name)
             
-            if success:
-                messagebox.showinfo("Success", "Feedback submitted and model updated")
-                self.status_var.set("Feedback submitted and model updated")
-                
-                # Update performance metrics
-                self._evaluate_accuracy()
+            if result:
+                # Provide feedback to the identifier
+                if hasattr(self.identifier, 'provide_feedback'):
+                    try:
+                        success = self.identifier.provide_feedback(
+                            self.identifier.analysis_results or {},
+                            raga_id,
+                            raga_name,
+                            update_model=True
+                        )
+                        
+                        if success:
+                            messagebox.showinfo("Success", "Feedback submitted and model updated")
+                            self.status_var.set("Feedback submitted and model updated")
+                            
+                            # Update performance metrics
+                            self._evaluate_accuracy()
+                        else:
+                            messagebox.showwarning("Warning", "Feedback submitted but model update may have failed")
+                            self.status_var.set("Feedback submitted but model update may have failed")
+                    except Exception as e:
+                        messagebox.showwarning("Warning", f"Feedback submitted but error during model update: {str(e)}")
+                        self.status_var.set("Feedback submitted but error during model update")
+                else:
+                    messagebox.showinfo("Success", "Feedback submitted")
+                    self.status_var.set("Feedback submitted")
             else:
-                messagebox.showerror("Error", "Failed to update model")
-                self.status_var.set("Failed to update model")
-        else:
-            messagebox.showerror("Error", "Failed to add file to dataset")
-            self.status_var.set("Failed to add file to dataset")
+                messagebox.showerror("Error", "Failed to add file to dataset")
+                self.status_var.set("Failed to add file to dataset")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error submitting feedback: {str(e)}")
+            self.status_var.set("Error submitting feedback")
 
     def _evaluate_accuracy(self):
         """Evaluate the accuracy of the raga identification system."""

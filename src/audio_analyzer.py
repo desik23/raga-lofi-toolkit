@@ -212,7 +212,7 @@ class CarnaticAudioAnalyzer:
         
         return tonic_freq
     
-    def extract_note_events(self, min_duration=0.1, min_confidence=0.6):
+    def extract_note_events(self, min_duration=0.05, min_confidence=0.2):  # Reduced thresholds
         """
         Extract note events from pitch data.
         
@@ -235,70 +235,130 @@ class CarnaticAudioAnalyzer:
         frequencies = self.pitch_data['frequencies']
         confidence = self.pitch_data['confidence']
         
-        # Convert frequencies to cents relative to tonic
-        cents_relative_to_tonic = 1200 * np.log2(frequencies / self.tonic['frequency'])
+        # Step 1: Add more aggressive filtering for valid frequencies
+        # Use a lower threshold for valid frequencies
+        valid_mask = (frequencies > 30) & (confidence > min_confidence)
+        valid_indices = np.where(valid_mask)[0]
         
-        # Quantize to nearest semitone
+        if len(valid_indices) < 5:  # Need some minimum number of valid frames
+            print(f"Too few valid frequencies ({len(valid_indices)}) for note extraction.")
+            # Create at least one note event from the maximum confidence segment
+            if len(confidence) > 0:
+                max_conf_idx = np.argmax(confidence)
+                if confidence[max_conf_idx] > 0 and frequencies[max_conf_idx] > 30:
+                    # Create a single note event
+                    note_freq = frequencies[max_conf_idx]
+                    cents_from_tonic = 1200 * np.log2(note_freq / max(1.0, self.tonic['frequency']))
+                    semitone = round(cents_from_tonic / 100)
+                    
+                    note_events = [{
+                        'start_time': times[0],
+                        'end_time': times[-1],
+                        'duration': times[-1] - times[0],
+                        'frequency': note_freq,
+                        'semitone': semitone,
+                        'deviation': 0,
+                        'confidence': confidence[max_conf_idx],
+                        'has_gamaka': False,
+                        'gamaka_intensity': 0
+                    }]
+                    
+                    self.note_events = note_events
+                    print(f"Created one note event as fallback")
+                    return note_events
+            
+            return []
+        
+        # Step 2: Work only with valid segments
+        filtered_times = times[valid_indices]
+        filtered_freqs = frequencies[valid_indices]
+        filtered_conf = confidence[valid_indices]
+        
+        # Create a new semitones array with only valid values
+        cents_relative_to_tonic = 1200 * np.log2(filtered_freqs / max(1.0, self.tonic['frequency']))
         semitones = np.round(cents_relative_to_tonic / 100)
         
-        # Find note change points
-        changes = np.where(np.diff(semitones) != 0)[0]
+        # Step 3: Segment notes based on changes or pauses
+        # Find where semitones change
+        semitone_changes = np.where(np.diff(semitones) != 0)[0]
         
-        # Add start and end points
-        boundaries = np.concatenate(([0], changes, [len(semitones) - 1]))
+        # Also find where there might be pauses
+        time_diffs = np.diff(filtered_times)
+        pause_indices = np.where(time_diffs > 0.1)[0]  # Gaps larger than 100ms
         
-        # Extract note events
+        # Combine both types of changes
+        all_changes = np.unique(np.concatenate(([0], semitone_changes, pause_indices, [len(filtered_times)-1])))
+        all_changes.sort()
+        
+        # Step 4: Create note events from segments
         note_events = []
         
-        for i in range(len(boundaries) - 1):
-            start_idx = boundaries[i]
-            end_idx = boundaries[i + 1]
+        for i in range(len(all_changes) - 1):
+            start_idx = all_changes[i]
+            end_idx = all_changes[i + 1]
+            
+            # Skip if indices are the same
+            if start_idx == end_idx:
+                continue
+                
+            segment_times = filtered_times[start_idx:end_idx+1]
+            segment_freqs = filtered_freqs[start_idx:end_idx+1]
+            segment_conf = filtered_conf[start_idx:end_idx+1]
             
             # Calculate duration
-            duration = times[end_idx] - times[start_idx]
+            duration = segment_times[-1] - segment_times[0]
             
-            # Skip very short notes
+            # Skip very short notes (but use a lower threshold)
             if duration < min_duration:
                 continue
             
-            # Get average frequency and confidence in this segment
-            segment_frequencies = frequencies[start_idx:end_idx + 1]
-            segment_confidence = confidence[start_idx:end_idx + 1]
-            
-            # Skip segments with low confidence
-            if np.mean(segment_confidence) < min_confidence:
-                continue
-            
-            # Calculate median frequency to avoid outliers
-            median_freq = np.median(segment_frequencies[segment_frequencies > 0])
-            
-            # Skip if we couldn't determine a valid frequency
-            if np.isnan(median_freq) or median_freq <= 0:
-                continue
+            # Calculate median frequency
+            median_freq = np.median(segment_freqs)
             
             # Calculate semitone relative to tonic
-            cents_from_tonic = 1200 * np.log2(median_freq / self.tonic['frequency'])
+            cents_from_tonic = 1200 * np.log2(median_freq / max(1.0, self.tonic['frequency']))
             semitone = round(cents_from_tonic / 100)
             
             # Calculate deviation from equal temperament
             deviation = cents_from_tonic - (semitone * 100)
             
             # Detect if note has significant pitch movement (gamaka)
-            freq_std = np.std(segment_frequencies[segment_frequencies > 0])
-            has_gamaka = freq_std > (median_freq * 0.05)  # If std dev > 5% of frequency
+            freq_std = np.std(segment_freqs)
+            has_gamaka = freq_std > (median_freq * 0.03)  # Lower threshold
             
             # Store note event
             note_events.append({
-                'start_time': times[start_idx],
-                'end_time': times[end_idx],
+                'start_time': segment_times[0],
+                'end_time': segment_times[-1],
                 'duration': duration,
                 'frequency': median_freq,
                 'semitone': semitone,
                 'deviation': deviation,
-                'confidence': np.mean(segment_confidence),
+                'confidence': np.mean(segment_conf),
                 'has_gamaka': has_gamaka,
                 'gamaka_intensity': freq_std / median_freq if has_gamaka else 0
             })
+        
+        # Add a fallback: if we still don't have notes but we have valid frequencies,
+        # create at least one note from the highest confidence segment
+        if len(note_events) == 0 and len(valid_indices) > 0:
+            best_idx = np.argmax(filtered_conf)
+            note_freq = filtered_freqs[best_idx]
+            cents_from_tonic = 1200 * np.log2(note_freq / max(1.0, self.tonic['frequency']))
+            semitone = round(cents_from_tonic / 100)
+            
+            note_events = [{
+                'start_time': filtered_times[0],
+                'end_time': filtered_times[-1],
+                'duration': filtered_times[-1] - filtered_times[0],
+                'frequency': note_freq,
+                'semitone': semitone,
+                'deviation': 0,
+                'confidence': filtered_conf[best_idx],
+                'has_gamaka': False,
+                'gamaka_intensity': 0
+            }]
+            print("Created fallback note event")
         
         # Store the extracted note events
         self.note_events = note_events
@@ -307,7 +367,7 @@ class CarnaticAudioAnalyzer:
         
         return note_events
     
-    def extract_phrases(self, min_notes=3, max_interval=1.0):
+    def extract_phrases(self, min_notes=2, max_interval=1.5):  # Reduced from 3 to 2, increased interval
         """
         Extract musical phrases from note events.
         
@@ -323,6 +383,15 @@ class CarnaticAudioAnalyzer:
             return None
         
         phrases = []
+        
+        # Handle special case: very few notes
+        if len(self.note_events) < min_notes:
+            # If we have at least one note, use it as a minimal phrase
+            if len(self.note_events) > 0:
+                phrases = [self.note_events]
+                print(f"Created one minimal phrase from {len(self.note_events)} notes")
+            return phrases
+        
         current_phrase = []
         
         for i, note in enumerate(self.note_events):
@@ -344,6 +413,9 @@ class CarnaticAudioAnalyzer:
         
         # Add the last phrase if it meets the minimum notes requirement
         if len(current_phrase) >= min_notes:
+            phrases.append(current_phrase)
+        elif len(current_phrase) > 0 and len(phrases) == 0:
+            # If we have no phrases yet, use whatever we have
             phrases.append(current_phrase)
         
         print(f"Extracted {len(phrases)} phrases")

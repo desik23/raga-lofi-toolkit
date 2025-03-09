@@ -85,9 +85,27 @@ class RagaFeatureExtractor:
         Returns:
         - Dictionary of raga features
         """
-        if not self.note_events or not self.phrases:
-            print("No note events or phrases available. Run analyze_file() first.")
-            return {}
+        if not self.note_events:
+            print("No note events available. Run analyze_file() first.")
+            
+            # Create minimal feature structure with defaults
+            return {
+                'note_distribution': {'scale_degrees': [0, 2, 4, 5, 7, 9, 11]},
+                'characteristic_phrases': [],
+                'gamaka_features': {'gamaka_percentage': 0.0},
+                'transition_matrix': {'matrix': {}},
+                'phrase_features': {'avg_length': 0},
+                'vadi_samvadi': {'vadi': 0, 'samvadi': 7},
+                'arohana_avarohana': {
+                    'arohana': [0, 2, 4, 5, 7, 9, 11],
+                    'avarohana': [11, 9, 7, 5, 4, 2, 0]
+                }
+            }
+        
+        # If we have no phrases but have notes, create a minimal phrase
+        if not self.phrases and self.note_events:
+            self.phrases = [self.note_events]
+            print("Created a minimal phrase from available notes")
         
         # 1. Extract note distribution
         note_distribution = self._analyze_note_distribution()
@@ -720,8 +738,9 @@ class RagaFeatureExtractor:
             
             scores[raga_id] = total_score
         
-        # Get top N matches
-        top_matches = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
+        # Get top N matches (only if score is meaningful)
+        filtered_scores = {k: v for k, v in scores.items() if v > 0.1}
+        top_matches = sorted(filtered_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
         
         return top_matches
     

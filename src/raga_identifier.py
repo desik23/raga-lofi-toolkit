@@ -210,12 +210,15 @@ class RagaIdentifier:
             print("Failed to extract features.")
             return None
         
+        # Initialize analysis results structure
+        self.analysis_results = {
+            'file_path': file_path,
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'overall_results': {'top_matches': []}  # Initialize with empty list
+        }
+        
         # Identify raga
         raga_matches = self.feature_extractor.identify_raga(top_n=top_n)
-        
-        if not raga_matches:
-            print("No matching ragas found.")
-            return None
         
         # Store results
         top_matches = []
@@ -239,20 +242,21 @@ class RagaIdentifier:
                 'similar_ragas': similar_ragas
             })
         
-        # Extract key features for the top match
+        # Update analysis results with top matches
+        self.analysis_results['overall_results']['top_matches'] = top_matches
+        
         if top_matches:
+            self.analysis_results['overall_results']['single_raga_confidence'] = float(top_matches[0]['confidence'])
+            
+            # Extract key features for the top match
             top_raga = top_matches[0]['raga_id']
             features_summary = self._extract_features_summary(features)
             top_matches[0]['features'] = features_summary
-        
-        # Store the results
-        self.analysis_results['overall_results'] = {
-            'top_matches': top_matches,
-            'single_raga_confidence': float(top_matches[0]['confidence']) if top_matches else 0.0
-        }
-        
+        else:
+            self.analysis_results['overall_results']['single_raga_confidence'] = 0.0
+            
         # Plot if requested
-        if plot:
+        if plot and top_matches:
             self._plot_raga_analysis(features, top_matches)
         
         return self.analysis_results
@@ -464,14 +468,6 @@ class RagaIdentifier:
             
             if 'samvadi' in vadi_samvadi and vadi_samvadi['samvadi'] is not None:
                 summary['samvadi'] = indian_notes[vadi_samvadi['samvadi'] % 12]
-        
-        # Extract time of day
-        if self.raga_metadata and 'categories' in self.raga_metadata:
-            for time_period, ragas in self.raga_metadata['categories']['time_of_day'].items():
-                for raga_id in self.analysis_results['overall_results']['top_matches']:
-                    if raga_id['raga_id'] in ragas:
-                        summary['time_of_day'] = time_period
-                        break
         
         return summary
     
