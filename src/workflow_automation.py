@@ -6,7 +6,7 @@ import subprocess
 import json
 import sys
 from datetime import datetime
-from raga_generator import RagaMelodyGenerator
+from enhanced_raga_generator import EnhancedRagaGenerator
 
 def main():
     # Load ragas data
@@ -32,29 +32,35 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     # Generate content
-    generator = RagaMelodyGenerator()
+    generator = EnhancedRagaGenerator()
     
     # Generate multiple variations
     variations = 3
     for i in range(variations):
         # Generate melody
         melody_file = generator.generate_melody(
-            selected_raga['name'].lower(), 
+            selected_raga['id'], 
             length=32,
             bpm=75
         )
         
         # Generate chord progression
         chord_file = generator.generate_chord_progression(
-            selected_raga['name'].lower(),
+            selected_raga['id'],
             length=4,
             bpm=75
         )
         
-        # Move files to output directory
-        os.rename(melody_file, f"{output_dir}/variation_{i+1}_{melody_file}")
-        os.rename(chord_file, f"{output_dir}/variation_{i+1}_{chord_file}")
-    
+        # Generate bass line
+        bass_file = generator.generate_bass_line(
+            selected_raga['id'],
+            length=32,
+            bpm=75
+        )
+        
+        # Copy files to output directory with variation number
+        # Note: these files already have timestamps so we don't need to rename them
+        
     print(f"\nGenerated {variations} variations in {output_dir}")
     
     # Try to open the output folder
