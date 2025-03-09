@@ -367,7 +367,7 @@ class CarnaticAudioAnalyzer:
         
         return note_events
     
-    def extract_phrases(self, min_notes=2, max_interval=1.5):  # Reduced from 3 to 2, increased interval
+    def extract_phrases(self, min_notes=2, max_interval=2.0):  # Increased interval
         """
         Extract musical phrases from note events.
         
@@ -385,13 +385,45 @@ class CarnaticAudioAnalyzer:
         phrases = []
         
         # Handle special case: very few notes
-        if len(self.note_events) < min_notes:
+        if len(self.note_events) <= 3:
             # If we have at least one note, use it as a minimal phrase
             if len(self.note_events) > 0:
                 phrases = [self.note_events]
                 print(f"Created one minimal phrase from {len(self.note_events)} notes")
             return phrases
         
+        # For larger files, try to create multiple phrases
+        if len(self.note_events) > 20 and self.duration > 30:
+            # Split into multiple phrases based on note timestamps
+            note_times = [note['start_time'] for note in self.note_events]
+            
+            # Find pauses that are significantly longer than the average
+            intervals = np.diff(note_times)
+            avg_interval = np.mean(intervals)
+            std_interval = np.std(intervals)
+            pause_threshold = max(1.5, avg_interval + 2 * std_interval)
+            
+            # Find significant pauses
+            pause_indices = np.where(intervals > pause_threshold)[0]
+            
+            # Use pauses to segment phrases
+            if len(pause_indices) > 0:
+                start_idx = 0
+                for pause_idx in pause_indices:
+                    end_idx = pause_idx + 1  # Note after the pause
+                    if end_idx - start_idx >= min_notes:
+                        phrases.append(self.note_events[start_idx:end_idx])
+                    start_idx = end_idx
+                
+                # Add the last phrase
+                if len(self.note_events) - start_idx >= min_notes:
+                    phrases.append(self.note_events[start_idx:])
+                
+                if phrases:
+                    print(f"Created {len(phrases)} phrases using pause detection")
+                    return phrases
+        
+        # Fall back to traditional grouping if pause detection didn't work
         current_phrase = []
         
         for i, note in enumerate(self.note_events):
@@ -417,6 +449,20 @@ class CarnaticAudioAnalyzer:
         elif len(current_phrase) > 0 and len(phrases) == 0:
             # If we have no phrases yet, use whatever we have
             phrases.append(current_phrase)
+        
+        # If we still have no phrases but have notes, create at least one phrase
+        if not phrases and self.note_events:
+            # Divide the notes into roughly equal phrases
+            if len(self.note_events) > 5:
+                chunk_size = min(16, max(3, len(self.note_events) // 3))
+                for i in range(0, len(self.note_events), chunk_size):
+                    chunk = self.note_events[i:i+chunk_size]
+                    if len(chunk) >= min_notes:
+                        phrases.append(chunk)
+            
+            # If still no phrases, just use all notes as one phrase
+            if not phrases:
+                phrases = [self.note_events]
         
         print(f"Extracted {len(phrases)} phrases")
         
