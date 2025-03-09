@@ -1,0 +1,445 @@
+{
+  "categories": {
+    "time_of_day": {
+      "morning": [
+        "bhairav",
+        "bhairavi",
+        "todi",
+        "lalit",
+        "ramkali",
+        "ahir_bhairav"
+      ],
+      "afternoon": [
+        "shuddh_sarang",
+        "madhuvanti",
+        "brindavani_sarang",
+        "multani",
+        "bhimpalasi"
+      ],
+      "evening": [
+        "puriya",
+        "marwa",
+        "sree",
+        "puriya_dhanashri",
+        "yaman",
+        "bageshree"
+      ],
+      "night": [
+        "darbari",
+        "jaunpuri",
+        "malkauns",
+        "chandrakauns",
+        "kafi",
+        "bihag",
+        "basant_bahar"
+      ]
+    },
+    "moods": {
+      "peaceful": [
+        "yaman",
+        "bihag",
+        "bhimpalasi",
+        "hamsadhwani",
+        "bageshree",
+        "tilak_kamod",
+        "desh"
+      ],
+      "devotional": [
+        "bhairav",
+        "todi",
+        "lalit",
+        "gurjari_todi",
+        "bhatiyar",
+        "shankara"
+      ],
+      "romantic": [
+        "khamaj",
+        "jhinjhoti",
+        "gara",
+        "kafi",
+        "pahadi",
+        "pilu",
+        "tilak_kamod"
+      ],
+      "heroic": [
+        "marwa",
+        "hindol",
+        "shankara",
+        "jog",
+        "durga",
+        "adana"
+      ],
+      "melancholic": [
+        "bhairavi",
+        "malkauns",
+        "darbari",
+        "bilaskhani_todi",
+        "patdeep"
+      ],
+      "contemplative": [
+        "puriya",
+        "puriya_dhanashri",
+        "chandrakauns",
+        "ahir_bhairav",
+        "jaunpuri"
+      ],
+      "joyful": [
+        "bilawal",
+        "hansadhwani",
+        "des",
+        "kedar",
+        "durga",
+        "khamaj"
+      ],
+      "playful": [
+        "kafi",
+        "gara",
+        "pilu",
+        "bhimpalasi",
+        "manj_khamaj"
+      ]
+    },
+    "regions": {
+      "north_indian": [
+        "bhairav",
+        "bhairavi",
+        "yaman",
+        "todi",
+        "marwa",
+        "darbari",
+        "multani"
+      ],
+      "south_indian": [
+        "shankarabharanam",
+        "kalyani",
+        "kharaharapriya",
+        "hamsadhwani",
+        "kambhoji",
+        "bhairavi",
+        "todi"
+      ],
+      "carnatic": [
+        "shankarabharanam",
+        "kalyani",
+        "kharaharapriya",
+        "mayamalavagowla",
+        "hanumatodi",
+        "natabhairavi",
+        "harikambhoji"
+      ]
+    }
+  },
+  "similar_ragas": {
+    "yaman": [
+      {
+        "raga_id": "kalyan",
+        "raga_name": "Kalyan",
+        "similarity": 0.98
+      },
+      {
+        "raga_id": "bilawal",
+        "raga_name": "Bilawal",
+        "similarity": 0.65
+      },
+      {
+        "raga_id": "kedar",
+        "raga_name": "Kedar",
+        "similarity": 0.75
+      }
+    ],
+    "bhairav": [
+      {
+        "raga_id": "ahir_bhairav",
+        "raga_name": "Ahir Bhairav",
+        "similarity": 0.85
+      },
+      {
+        "raga_id": "gauri",
+        "raga_name": "Gauri",
+        "similarity": 0.75
+      },
+      {
+        "raga_id": "shivmat_bhairav",
+        "raga_name": "Shivmat Bhairav",
+        "similarity": 0.92
+      }
+    ],
+    "darbari": [
+      {
+        "raga_id": "adana",
+        "raga_name": "Adana",
+        "similarity": 0.85
+      },
+      {
+        "raga_id": "jaunpuri",
+        "raga_name": "Jaunpuri",
+        "similarity": 0.78
+      },
+      {
+        "raga_id": "malkauns",
+        "raga_name": "Malkauns",
+        "similarity": 0.65
+      }
+    ],
+    "bhairavi": [
+      {
+        "raga_id": "bilaskhani_todi",
+        "raga_name": "Bilaskhani Todi",
+        "similarity": 0.72
+      },
+      {
+        "raga_id": "kafi",
+        "raga_name": "Kafi",
+        "similarity": 0.65
+      },
+      {
+        "raga_id": "malkauns",
+        "raga_name": "Malkauns",
+        "similarity": 0.70
+      }
+    ],
+    "todi": [
+      {
+        "raga_id": "gurjari_todi",
+        "raga_name": "Gurjari Todi",
+        "similarity": 0.92
+      },
+      {
+        "raga_id": "bilaskhani_todi",
+        "raga_name": "Bilaskhani Todi",
+        "similarity": 0.88
+      },
+      {
+        "raga_id": "bhairavi",
+        "raga_name": "Bhairavi",
+        "similarity": 0.68
+      }
+    ],
+    "malkauns": [
+      {
+        "raga_id": "chandrakauns",
+        "raga_name": "Chandrakauns",
+        "similarity": 0.80
+      },
+      {
+        "raga_id": "bhairavi",
+        "raga_name": "Bhairavi",
+        "similarity": 0.70
+      },
+      {
+        "raga_id": "bageshree",
+        "raga_name": "Bageshree",
+        "similarity": 0.55
+      }
+    ],
+    "marwa": [
+      {
+        "raga_id": "puriya",
+        "raga_name": "Puriya",
+        "similarity": 0.85
+      },
+      {
+        "raga_id": "sohini",
+        "raga_name": "Sohini",
+        "similarity": 0.80
+      },
+      {
+        "raga_id": "hindol",
+        "raga_name": "Hindol",
+        "similarity": 0.60
+      }
+    ],
+    "bihag": [
+      {
+        "raga_id": "yaman",
+        "raga_name": "Yaman",
+        "similarity": 0.70
+      },
+      {
+        "raga_id": "jhinjhoti",
+        "raga_name": "Jhinjhoti",
+        "similarity": 0.65
+      },
+      {
+        "raga_id": "behag",
+        "raga_name": "Behag",
+        "similarity": 0.85
+      }
+    ],
+    "kafi": [
+      {
+        "raga_id": "bhimpalasi",
+        "raga_name": "Bhimpalasi",
+        "similarity": 0.75
+      },
+      {
+        "raga_id": "desi",
+        "raga_name": "Desi",
+        "similarity": 0.70
+      },
+      {
+        "raga_id": "jhinjhoti",
+        "raga_name": "Jhinjhoti",
+        "similarity": 0.65
+      }
+    ],
+    "bhimpalasi": [
+      {
+        "raga_id": "kafi",
+        "raga_name": "Kafi",
+        "similarity": 0.75
+      },
+      {
+        "raga_id": "bageshree",
+        "raga_name": "Bageshree",
+        "similarity": 0.68
+      },
+      {
+        "raga_id": "dhanashree",
+        "raga_name": "Dhanashree",
+        "similarity": 0.65
+      }
+    ],
+    "hamsadhwani": [
+      {
+        "raga_id": "bilawal",
+        "raga_name": "Bilawal",
+        "similarity": 0.60
+      },
+      {
+        "raga_id": "yaman",
+        "raga_name": "Yaman",
+        "similarity": 0.55
+      },
+      {
+        "raga_id": "durga",
+        "raga_name": "Durga",
+        "similarity": 0.62
+      }
+    ],
+    "shankarabharanam": [
+      {
+        "raga_id": "bilawal",
+        "raga_name": "Bilawal",
+        "similarity": 0.95
+      },
+      {
+        "raga_id": "kalyani",
+        "raga_name": "Kalyani",
+        "similarity": 0.65
+      },
+      {
+        "raga_id": "hamir",
+        "raga_name": "Hamir",
+        "similarity": 0.60
+      }
+    ],
+    "kalyani": [
+      {
+        "raga_id": "yaman",
+        "raga_name": "Yaman",
+        "similarity": 0.98
+      },
+      {
+        "raga_id": "sarasangi",
+        "raga_name": "Sarasangi",
+        "similarity": 0.70
+      },
+      {
+        "raga_id": "puriya",
+        "raga_name": "Puriya",
+        "similarity": 0.50
+      }
+    ],
+    "hanumatodi": [
+      {
+        "raga_id": "todi",
+        "raga_name": "Todi",
+        "similarity": 0.95
+      },
+      {
+        "raga_id": "gurjari_todi",
+        "raga_name": "Gurjari Todi",
+        "similarity": 0.88
+      },
+      {
+        "raga_id": "multani",
+        "raga_name": "Multani",
+        "similarity": 0.60
+      }
+    ],
+    "mayamalavagowla": [
+      {
+        "raga_id": "bhairav",
+        "raga_name": "Bhairav",
+        "similarity": 0.85
+      },
+      {
+        "raga_id": "poorvi",
+        "raga_name": "Poorvi",
+        "similarity": 0.70
+      },
+      {
+        "raga_id": "marwa",
+        "raga_name": "Marwa",
+        "similarity": 0.60
+      }
+    ]
+  },
+  "notes": {
+    "common_vadi_samvadi_pairs": {
+      "yaman": {"vadi": 4, "samvadi": 11},
+      "bhairav": {"vadi": 1, "samvadi": 8},
+      "todi": {"vadi": 1, "samvadi": 8},
+      "bhairavi": {"vadi": 1, "samvadi": 8},
+      "kafi": {"vadi": 4, "samvadi": 10},
+      "asavari": {"vadi": 2, "samvadi": 9},
+      "bilawal": {"vadi": 5, "samvadi": 9},
+      "kalyan": {"vadi": 4, "samvadi": 11},
+      "marwa": {"vadi": 6, "samvadi": 9},
+      "purvi": {"vadi": 8, "samvadi": 1},
+      "khamaj": {"vadi": 4, "samvadi": 11},
+      "bhimpalasi": {"vadi": 4, "samvadi": 10},
+      "darbari": {"vadi": 1, "samvadi": 8},
+      "poorvi": {"vadi": 6, "samvadi": 9},
+      "malkauns": {"vadi": 8, "samvadi": 3}
+    },
+    "common_confusion_pairs": [
+      ["yaman", "kalyan"],
+      ["bhairavi", "kafi"],
+      ["darbari", "adana"],
+      ["bhairav", "mayamalavagowla"],
+      ["todi", "hanumatodi"],
+      ["malkauns", "chandrakauns"],
+      ["bilawal", "shankarabharanam"],
+      ["bhimpalasi", "dhanashree"],
+      ["marwa", "puriya"],
+      ["asavari", "jaunpuri"],
+      ["desh", "tilak_kamod"],
+      ["khamaj", "jhinjhoti"]
+    ],
+    "thaats": {
+      "bilawal": ["bilawal", "hamsadhwani", "durga", "deshkar"],
+      "kalyan": ["yaman", "hindol", "shudh_kalyan", "bhupali", "hansadhwani"],
+      "khamaj": ["khamaj", "jhinjhoti", "jaijaiwanti", "tilak_kamod", "desh", "gara"],
+      "bhairav": ["bhairav", "kalingda", "ahir_bhairav", "jogiya", "ramkali"],
+      "bhairavi": ["bhairavi", "malkauns", "bilaskhani_todi"],
+      "asavari": ["asavari", "darbari", "adana", "jaunpuri", "bhimpalasi"],
+      "todi": ["todi", "multani", "gurjari_todi"],
+      "purvi": ["purvi", "shree", "basant", "pahadi", "pilu"],
+      "marwa": ["marwa", "puriya", "sohini"],
+      "kafi": ["kafi", "bageshree", "dhanashree", "bhimpalasi", "pilu"]
+    },
+    "melakarta_to_western": {
+      "shankarabharanam": "Major",
+      "kalyani": "Lydian",
+      "hanumatodi": "Natural Minor",
+      "natabhairavi": "Melodic Minor",
+      "hemavati": "Harmonic Minor",
+      "dheerasankarabharanam": "Ionian",
+      "kharaharapriya": "Dorian",
+      "mayamalavagowla": "Phrygian",
+      "charukesi": "Mixolydian"
+    }
+  }
+}
