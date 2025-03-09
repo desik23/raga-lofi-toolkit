@@ -15,6 +15,8 @@ import json
 import random
 import time  # Add this import
 from enhanced_raga_generator import EnhancedRagaGenerator
+from raga_identifier import RagaIdentifier
+from raga_dataset_manager import RagaDatasetManager
 
 class RagaLoFiApp:
     def __init__(self, root):
@@ -26,25 +28,44 @@ class RagaLoFiApp:
         # Initialize the generator
         self.generator = EnhancedRagaGenerator()
         
-        # Set up main frame
-        self.main_frame = ttk.Frame(root, padding="20")
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        # Initialize the identifier and dataset manager
+        self.identifier = RagaIdentifier()
+        self.dataset_manager = RagaDatasetManager()
         
+        # Create a top-level notebook
+        self.app_notebook = ttk.Notebook(root)
+        self.app_notebook.pack(fill=tk.BOTH, expand=True)
+        
+        # Create tabs for generator and identifier
+        self.generator_frame = ttk.Frame(self.app_notebook, padding="20")
+        self.app_notebook.add(self.generator_frame, text="Raga Generator")
+        
+        self.identifier_frame = ttk.Frame(self.app_notebook, padding="20")
+        self.app_notebook.add(self.identifier_frame, text="Raga Identifier")
+        
+        # Create status bar (outside the notebook)
+        self._create_status_bar()
+        
+        # Build Generator UI (original functionality)
+        self.main_frame = self.generator_frame
+        self._create_generator_ui()
+        
+        # Build Identifier UI (new functionality)
+        self._create_identifier_ui()
+        
+        # Configure styling
+        self._configure_styles()
+    def _create_generator_ui(self):
+        """Create the UI elements for the generator tab."""
         # Create UI elements
         self._create_header()
         self._create_raga_selection()
         self._create_parameters()
         self._create_generation_controls()
         self._create_output_display()
-        self._create_status_bar()
         self._create_notation_display()
-        
         # Set default values
         self._set_defaults()
-        
-        # Configure styling
-        self._configure_styles()
-    
     def _configure_styles(self):
         """Configure custom styles for the application."""
         style = ttk.Style()
@@ -956,6 +977,7 @@ class RagaLoFiApp:
             # Show error in the main thread
             self.root.after(0, lambda: messagebox.showerror("Error", str(e)))
             self.root.after(0, lambda: self.status_var.set("Error generating files"))
+
     def _generate_files(self):
         """Generate MIDI files based on current settings."""
         # Get selected raga
@@ -985,7 +1007,239 @@ class RagaLoFiApp:
             target=self._generate_thread, 
             args=(selected_id, base_note, bpm, use_patterns, melody_length)
         ).start()
-    
+    def _create_identifier_ui(self):
+        """Create the UI elements for the raga identifier tab."""
+        # File selection section
+        file_section = ttk.LabelFrame(self.identifier_frame, text="Audio File", padding=10)
+        file_section.pack(fill=tk.X, pady=(0, 15))
+        
+        ttk.Button(file_section, text="Load Audio File", command=self._load_audio_file).pack(side=tk.LEFT, padx=(0, 10))
+        self.file_path_var = tk.StringVar()
+        ttk.Entry(file_section, textvariable=self.file_path_var, width=40, state="readonly").pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Identification results section
+        results_section = ttk.LabelFrame(self.identifier_frame, text="Identification Results", padding=10)
+        results_section.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
+        
+        self.results_text = tk.Text(results_section, wrap=tk.WORD, height=10)
+        self.results_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # Add a scrollbar
+        scrollbar = ttk.Scrollbar(results_section, command=self.results_text.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.results_text.config(yscrollcommand=scrollbar.set)
+        
+        # Make read-only
+        self.results_text.config(state=tk.DISABLED)
+        
+        # Feedback section
+        feedback_section = ttk.LabelFrame(self.identifier_frame, text="Provide Feedback", padding=10)
+        feedback_section.pack(fill=tk.X, pady=(0, 15))
+        
+        ttk.Label(feedback_section, text="Correct Raga:").pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.feedback_raga_var = tk.StringVar()
+        self.feedback_raga_dropdown = ttk.Combobox(feedback_section, textvariable=self.feedback_raga_var, state="readonly")
+        self.feedback_raga_dropdown.pack(side=tk.LEFT, padx=(0, 10))
+        
+        ttk.Button(feedback_section, text="Submit Feedback", command=self._submit_feedback).pack(side=tk.LEFT)
+        
+        # Performance metrics section
+        metrics_section = ttk.LabelFrame(self.identifier_frame, text="Performance Metrics", padding=10)
+        metrics_section.pack(fill=tk.X)
+        
+        # Add buttons to evaluate accuracy and generate report
+        buttons_frame = ttk.Frame(metrics_section)
+        buttons_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Button(buttons_frame, text="Evaluate Accuracy", command=self._evaluate_accuracy).pack(side=tk.LEFT, padx=5)
+        ttk.Button(buttons_frame, text="Generate Report", command=self._generate_report).pack(side=tk.LEFT, padx=5)
+        
+        # Metrics display
+        self.metrics_text = tk.Text(metrics_section, wrap=tk.WORD, height=5)
+        self.metrics_text.pack(fill=tk.X, expand=True)
+        
+        # Make read-only
+        self.metrics_text.config(state=tk.DISABLED)
+    def _load_audio_file(self):
+        """Load an audio file for identification."""
+        file_path = filedialog.askopenfilename(
+            title="Select Audio File",
+            filetypes=(("Audio Files", "*.wav *.mp3 *.ogg *.flac"), ("All files", "*.*"))
+        )
+        
+        if not file_path:
+            return
+        
+        self.file_path_var.set(file_path)
+        self.status_var.set(f"Identifying raga in {os.path.basename(file_path)}...")
+        
+        # Run identification in a separate thread to keep UI responsive
+        threading.Thread(
+            target=self._identify_raga_thread,
+            args=(file_path,)
+        ).start()
+
+    def _identify_raga_thread(self, file_path):
+        """Thread function for raga identification."""
+        try:
+            # Identify raga
+            results = self.identifier.identify_raga(file_path, preprocess=True)
+            
+            # Update UI in the main thread
+            self.root.after(0, lambda: self._update_identification_results(results))
+            
+        except Exception as e:
+            # Show error in the main thread
+            self.root.after(0, lambda: messagebox.showerror("Error", str(e)))
+            self.root.after(0, lambda: self.status_var.set("Error identifying raga"))
+
+    def _update_identification_results(self, results):
+        """Update the identification results display."""
+        if not results:
+            messagebox.showerror("Error", "Failed to identify raga")
+            self.status_var.set("Failed to identify raga")
+            return
+        
+        # Enable text widget for editing
+        self.results_text.config(state=tk.NORMAL)
+        
+        # Clear previous content
+        self.results_text.delete(1.0, tk.END)
+        
+        # Add identification results
+        description = self.identifier.get_description()
+        self.results_text.insert(tk.END, description)
+        
+        # Make read-only again
+        self.results_text.config(state=tk.DISABLED)
+        
+        # Update status
+        self.status_var.set("Raga identification complete")
+        
+        # Populate feedback dropdown with all available ragas
+        all_ragas = []
+        
+        # Get ragas from the available models
+        for raga_id, model in self.identifier.feature_extractor.raga_models.items():
+            raga_name = "Unknown"
+            if isinstance(model, dict):
+                if 'metadata' in model and 'raga_name' in model['metadata']:
+                    raga_name = model['metadata']['raga_name']
+                elif 'name' in model:
+                    raga_name = model['name']
+            
+            all_ragas.append(f"{raga_name} ({raga_id})")
+        
+        # Sort alphabetically
+        all_ragas.sort()
+        
+        self.feedback_raga_dropdown.config(values=all_ragas)
+        
+        # Set the top match as the default selection
+        if ('overall_results' in results and 'top_matches' in results['overall_results'] 
+            and results['overall_results']['top_matches']):
+            top_match = results['overall_results']['top_matches'][0]
+            self.feedback_raga_var.set(f"{top_match['raga_name']} ({top_match['raga_id']})")
+            
+    def _submit_feedback(self):
+        """Submit feedback on the identified raga."""
+        feedback_raga = self.feedback_raga_var.get()
+        
+        if not feedback_raga:
+            messagebox.showerror("Error", "Please select the correct raga")
+            return
+        
+        # Extract raga ID and name from the selected value
+        # Format: "Raga Name (raga_id)"
+        try:
+            raga_parts = feedback_raga.rsplit(" (", 1)  # Split from the last occurrence
+            raga_name = raga_parts[0]
+            raga_id = raga_parts[1].rstrip(")")
+        except IndexError:
+            messagebox.showerror("Error", "Invalid raga format")
+            return
+        
+        # Add the file to the dataset with the correct raga ID
+        file_path = self.file_path_var.get()
+        
+        if not file_path:
+            messagebox.showerror("Error", "No audio file loaded")
+            return
+        
+        # Add file to dataset
+        result = self.dataset_manager.add_file(file_path, raga_id, raga_name)
+        
+        if result:
+            # Provide feedback to the identifier
+            success = self.identifier.provide_feedback(
+                self.identifier.analysis_results,
+                raga_id,
+                raga_name,
+                update_model=True
+            )
+            
+            if success:
+                messagebox.showinfo("Success", "Feedback submitted and model updated")
+                self.status_var.set("Feedback submitted and model updated")
+                
+                # Update performance metrics
+                self._evaluate_accuracy()
+            else:
+                messagebox.showerror("Error", "Failed to update model")
+                self.status_var.set("Failed to update model")
+        else:
+            messagebox.showerror("Error", "Failed to add file to dataset")
+            self.status_var.set("Failed to add file to dataset")
+
+    def _evaluate_accuracy(self):
+        """Evaluate the accuracy of the raga identification system."""
+        # Evaluate accuracy
+        metrics = self.dataset_manager.evaluate_accuracy()
+        
+        # Enable text widget for editing
+        self.metrics_text.config(state=tk.NORMAL)
+        
+        # Clear previous content
+        self.metrics_text.delete(1.0, tk.END)
+        
+        # Add metrics
+        if metrics and metrics.get('total', 0) > 0:
+            self.metrics_text.insert(tk.END, f"Total files: {metrics['total']}\n")
+            self.metrics_text.insert(tk.END, f"Correct: {metrics['correct']}\n")
+            self.metrics_text.insert(tk.END, f"Accuracy: {metrics['accuracy']:.2%}\n")
+            self.metrics_text.insert(tk.END, f"Top-3 accuracy: {metrics['top_3_accuracy']:.2%}\n")
+        else:
+            self.metrics_text.insert(tk.END, "No metrics available or no files in dataset")
+        
+        # Make read-only again
+        self.metrics_text.config(state=tk.DISABLED)
+        
+        # Update status
+        self.status_var.set("Accuracy evaluation complete")
+
+    def _generate_report(self):
+        """Generate a report of the dataset and model performance."""
+        # Generate report
+        report_path = self.dataset_manager.generate_report()
+        
+        if report_path:
+            messagebox.showinfo("Report Generated", f"Report saved to: {report_path}")
+            self.status_var.set(f"Report saved to: {report_path}")
+            
+            # Try to open the report
+            try:
+                if sys.platform == 'darwin':  # macOS
+                    subprocess.run(['open', report_path])
+                elif sys.platform == 'win32':  # Windows
+                    os.startfile(report_path)
+                else:  # Linux
+                    subprocess.run(['xdg-open', report_path])
+            except:
+                pass
+        else:
+            messagebox.showerror("Error", "Failed to generate report")
+            self.status_var.set("Failed to generate report")
     def _update_output_display(self, raga_name, generated_files):
         """Update the output display with generated files."""
         # Enable text widget for editing
