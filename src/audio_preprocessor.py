@@ -296,7 +296,7 @@ class CarnaticAudioPreprocessor:
     
     def segment_audio(self, segment_length=60, min_segment_length=10, with_overlap=True):
         """
-        Segment the audio into smaller chunks by detecting section boundaries.
+        Segment the audio into musically meaningful chunks by detecting section boundaries.
         
         Parameters:
         - segment_length: Target length of segments in seconds
@@ -322,10 +322,8 @@ class CarnaticAudioPreprocessor:
         rec_matrix = recurrence_matrix(mfccs, mode='affinity', width=3)
         
         # Find segment boundaries using spectral clustering
-        n_segments = int(np.ceil(self.duration / segment_length))
-        
-        # Ensure we have at least 2 segments for longer audio
-        n_segments = max(2, n_segments)
+        n_segments = max(2, int(np.ceil(self.duration / segment_length)))
+        n_segments = min(10, n_segments)  # Cap at 10 segments to avoid over-segmentation
         
         # Convert recurrence matrix to feature vectors for clustering
         try:
@@ -335,7 +333,7 @@ class CarnaticAudioPreprocessor:
         except TypeError:
             # Older librosa versions
             boundaries = librosa.segment.agglomerative(rec_matrix, n_segments)
-
+        
         boundary_times = librosa.frames_to_time(boundaries, sr=self.sample_rate)
         
         # Add start and end times
@@ -350,7 +348,19 @@ class CarnaticAudioPreprocessor:
             
             # Skip if segment is too short
             if segment_duration < min_segment_length:
-                continue
+                # Try to merge with adjacent segment if possible
+                if i < len(boundary_times) - 2:
+                    # Merge with next segment
+                    end_time = boundary_times[i+2]
+                    segment_duration = end_time - start_time
+                    i += 1  # Skip the next boundary in the loop
+                elif i > 0:
+                    # Merge with previous segment
+                    continue  # Skip this segment as it was merged with previous
+                else:
+                    # Can't merge, use as is if it's not extremely short
+                    if segment_duration < 3:  # Skip extremely short segments (< 3 seconds)
+                        continue
             
             # Calculate sample indices
             start_sample = int(start_time * self.sample_rate)
@@ -362,16 +372,17 @@ class CarnaticAudioPreprocessor:
             
             print(f"Segment {i+1}: {start_time:.2f}s - {end_time:.2f}s ({segment_duration:.2f}s)")
         
-        # Add overlapping segments if necessary
-        if with_overlap and self.duration > 2 * segment_length:
-            # Create overlapping segments
-            for i in range(int(self.duration / (segment_length / 2)) - 1):
-                start_time = i * (segment_length / 2)
-                end_time = start_time + segment_length
-                
-                # Skip if beyond audio length
-                if end_time > self.duration:
-                    break
+        # If we have too few segments, try a different approach
+        if len(segments) < 2 and self.duration > segment_length * 2:
+            # Divide into roughly equal parts
+            n_equal_segments = max(2, int(self.duration / segment_length))
+            n_equal_segments = min(6, n_equal_segments)  # Cap at 6 segments
+            equal_segments = []
+            
+            segment_duration = self.duration / n_equal_segments
+            for i in range(n_equal_segments):
+                start_time = i * segment_duration
+                end_time = (i + 1) * segment_duration
                 
                 # Calculate sample indices
                 start_sample = int(start_time * self.sample_rate)
@@ -379,11 +390,43 @@ class CarnaticAudioPreprocessor:
                 
                 # Extract segment
                 segment = self.audio[start_sample:end_sample]
+                equal_segments.append((segment, start_time, end_time))
                 
-                # Add to segments list with overlap indicator
-                segments.append((segment, start_time, end_time, "overlap"))
+                print(f"Equal Segment {i+1}: {start_time:.2f}s - {end_time:.2f}s ({segment_duration:.2f}s)")
+            
+            segments = equal_segments
+        
+        # Add overlapping segments if requested and if we have larger segments
+        if with_overlap and self.duration > 2 * segment_length and len(segments) > 0:
+            # Determine a good overlap length - about half the average segment size but at least 10 seconds
+            avg_segment_duration = sum(end - start for _, start, end in segments) / len(segments)
+            overlap_length = max(min_segment_length, avg_segment_duration / 2)
+            
+            # Only add overlaps between longer segments
+            for i in range(len(segments) - 1):
+                _, start1, end1 = segments[i]
+                _, start2, _ = segments[i+1]
                 
-            print(f"Added {len(segments) - (len(boundary_times) - 1)} overlapping segments")
+                # Only add overlap if segments are sufficiently long
+                if end1 - start1 >= min_segment_length and start2 - start1 >= min_segment_length:
+                    # Create overlap centered between segments
+                    overlap_center = (end1 + start2) / 2
+                    overlap_start = max(start1, overlap_center - overlap_length/2)
+                    overlap_end = min(start2, overlap_center + overlap_length/2)
+                    
+                    if overlap_end - overlap_start >= min_segment_length:
+                        # Calculate sample indices
+                        start_sample = int(overlap_start * self.sample_rate)
+                        end_sample = int(overlap_end * self.sample_rate)
+                        
+                        # Extract segment
+                        segment = self.audio[start_sample:end_sample]
+                        segments.append((segment, overlap_start, overlap_end, "overlap"))
+                        
+                        print(f"Overlap Segment {i+1}: {overlap_start:.2f}s - {overlap_end:.2f}s ({overlap_end-overlap_start:.2f}s)")
+        
+        # Sort all segments by start time
+        segments.sort(key=lambda x: x[1])
         
         # Return audio segments only
         return [segment[0] for segment in segments]

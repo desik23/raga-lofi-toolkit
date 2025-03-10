@@ -88,8 +88,6 @@ class RagaFeatureExtractor:
         print(f"Loaded {len(self.raga_models)} raga models from individual files")
         return models_loaded
     
-    print(f"Loaded {len(self.raga_models)} raga models from individual files")
-    
     def analyze_file(self, file_path):
         """
         Analyze an audio file to extract raga features.
@@ -772,14 +770,17 @@ class RagaFeatureExtractor:
             
             # Calculate weighted total score
             total_score = (
-                note_score * 0.3 +
-                scale_score * 0.3 +
-                transition_score * 0.2 +
-                gamaka_score * 0.1 +
-                phrase_score * 0.1
+                note_score * 0.45 +  # Increased from 0.3
+                scale_score * 0.4 +  # Increased from 0.3
+                transition_score * 0.1 +  # Decreased from 0.2
+                gamaka_score * 0.025 +  # Decreased from 0.1
+                phrase_score * 0.025   # Decreased from 0.1
             )
             
             scores[raga_id] = total_score
+        
+        # Apply normalization to enhance separation
+        scores = self._normalize_confidence_scores(scores)
         
         # Get top N matches (only if score is meaningful)
         filtered_scores = {k: v for k, v in scores.items() if v > 0.1}
@@ -802,18 +803,25 @@ class RagaFeatureExtractor:
         # Get union of all notes
         all_notes = set(percentages1.keys()) | set(percentages2.keys())
         
-        # Calculate similarity
+        # Calculate similarity with increased penalty for missing notes
         similarity = 0.0
+        missing_penalty = 0.2  # Penalty for notes present in one but not the other
+        
         for note in all_notes:
             p1 = percentages1.get(note, 0)
             p2 = percentages2.get(note, 0)
-            difference = abs(p1 - p2)
-            # Less difference = higher similarity
-            similarity += max(0, 100 - difference) / 100
+            
+            # If note is significant in one but missing in the other, apply penalty
+            if (p1 > 5.0 and p2 == 0) or (p2 > 5.0 and p1 == 0):
+                similarity -= missing_penalty
+            else:
+                # For present notes, calculate similarity based on percentage difference
+                difference = abs(p1 - p2)
+                # Less difference = higher similarity
+                similarity += max(0, 100 - difference) / 100
         
-        # Normalize
-        if all_notes:
-            similarity /= len(all_notes)
+        # Normalize to 0-1 range
+        similarity = max(0, min(1, (similarity / len(all_notes)) + 0.5))
         
         return similarity
     
@@ -830,20 +838,33 @@ class RagaFeatureExtractor:
         avarohana1 = set(patterns1.get('avarohana', []))
         avarohana2 = set(patterns2.get('avarohana', []))
         
-        # Calculate Jaccard similarity for arohana
+        # Ensure Sa (0) is in all scales
+        arohana1.add(0)
+        arohana2.add(0)
+        avarohana1.add(0)
+        avarohana2.add(0)
+        
+        # Calculate Jaccard similarity with extra weight for complete matches
         if arohana1 and arohana2:
-            arohana_sim = len(arohana1 & arohana2) / len(arohana1 | arohana2)
+            intersection = len(arohana1 & arohana2)
+            union = len(arohana1 | arohana2)
+            # Give major bonus for exact scale matches
+            scale_match_bonus = 0.3 if arohana1 == arohana2 else 0.0
+            arohana_sim = (intersection / union) + scale_match_bonus
         else:
             arohana_sim = 0.0
         
-        # Calculate Jaccard similarity for avarohana
         if avarohana1 and avarohana2:
-            avarohana_sim = len(avarohana1 & avarohana2) / len(avarohana1 | avarohana2)
+            intersection = len(avarohana1 & avarohana2)
+            union = len(avarohana1 | avarohana2)
+            # Give major bonus for exact scale matches
+            scale_match_bonus = 0.3 if avarohana1 == avarohana2 else 0.0
+            avarohana_sim = (intersection / union) + scale_match_bonus
         else:
             avarohana_sim = 0.0
         
-        # Average the similarities
-        return (arohana_sim + avarohana_sim) / 2
+        # Calculate overall similarity, capping at 1.0
+        return min(1.0, (arohana_sim + avarohana_sim) / 2)
     
     def _compare_transition_matrices(self, matrix1, matrix2):
         """Compare transition matrices and return similarity score (0-1)."""
@@ -964,13 +985,15 @@ class RagaFeatureExtractor:
         # Create new model or update existing one
         if raga_id in self.raga_models:
             model = self.raga_models[raga_id]
-            # Update with new data (simple averaging)
-            model = self._merge_raga_models(model, self.raga_features)
+            # Update with new data (weighted averaging)
+            model = self._merge_raga_models(model, self.raga_features, weight2=0.4)  # Increased from typical 0.3
         else:
             # Create new model
             model = self.raga_features.copy()
             if raga_name:
-                model['name'] = raga_name
+                model['metadata'] = model.get('metadata', {})
+                model['metadata']['raga_name'] = raga_name
+                model['metadata']['raga_id'] = raga_id
         
         # Update the models dictionary
         self.raga_models[raga_id] = model
@@ -1671,6 +1694,43 @@ class RagaFeatureExtractor:
         plt.annotate(f"Avg Duration: {avg_duration:.2f}s\nAvg Complexity: {avg_complexity:.2f} notes/s",
                     xy=(0.05, 0.95), xycoords='axes fraction',
                     bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8))
+    def _normalize_confidence_scores(self, scores):
+        """
+        Normalize confidence scores to enhance separation between top matches.
+        
+        Parameters:
+        - scores: Dictionary of {raga_id: score}
+        
+        Returns:
+        - Normalized scores
+        """
+        # Get scores as list
+        score_values = list(scores.values())
+        
+        # If all scores are very similar, boost the confidence separation
+        if score_values and max(score_values) > 0:
+            max_score = max(score_values)
+            mean_score = sum(score_values) / len(score_values)
+            
+            # Calculate standard deviation
+            if len(score_values) > 1:
+                variance = sum((s - mean_score) ** 2 for s in score_values) / len(score_values)
+                std_dev = variance ** 0.5
+            else:
+                std_dev = 0
+            
+            # If the distribution is tight (small std_dev relative to mean)
+            if std_dev < 0.1 * mean_score:
+                # Apply stronger normalization to increase separation
+                normalized = {}
+                for raga_id, score in scores.items():
+                    # This will "stretch" the distribution
+                    normalized_score = ((score / max_score) ** 2) * max_score
+                    normalized[raga_id] = normalized_score
+                return normalized
+        
+        # If scores have good separation already, return as is
+        return scores
 
 
 def analyze_raga_features(file_path, output_dir='outputs', raga_id=None, raga_name=None, plot=False):

@@ -270,7 +270,7 @@ class RagaIdentifier:
         if not full_file_results:
             return None
         
-        # Segment the audio
+        # Segment the audio with more appropriate parameters
         print("Segmenting audio for mixed raga analysis...")
         try:
             success = self.preprocessor.load_audio(file_path)
@@ -278,30 +278,28 @@ class RagaIdentifier:
                 print("Error loading audio for segmentation.")
                 return full_file_results
             
-            # Use two segmentation approaches
-            segments1 = self.preprocessor.segment_audio(segment_length=60, with_overlap=False)
-            segments2 = self.preprocessor.extract_main_sections(section_count=3)
+            # Use improved segmentation with appropriate parameters
+            segments = self.preprocessor.segment_audio(
+                segment_length=30,  # Aim for 30-second segments
+                min_segment_length=10,  # Minimum 10 seconds for analysis
+                with_overlap=True
+            )
             
-            # Combine segments from both approaches
-            all_segments = []
-            
-            # Add segments from first approach
-            if segments1:
-                for i, segment in enumerate(segments1):
-                    all_segments.append((segment, 0, len(segment) / self.preprocessor.sample_rate, f"Segment {i+1}"))
-            
-            # Add segments from second approach
-            if segments2:
-                all_segments.extend(segments2)
-            
-            # Sort by start time
-            all_segments.sort(key=lambda x: x[1])
+            # Only proceed if we got reasonable segmentation
+            if not segments or len(segments) <= 1:
+                print("Could not create meaningful segments. Using full file analysis.")
+                return full_file_results
             
             # Analyze each segment
             segment_results = []
             
-            for i, (segment, start_time, end_time, label) in enumerate(all_segments):
-                print(f"\nAnalyzing {label} ({start_time:.2f}s - {end_time:.2f}s)...")
+            for i, segment in enumerate(segments):
+                # Skip segments that are too short for meaningful analysis
+                if len(segment) / self.preprocessor.sample_rate < 5:  # Skip segments < 5 seconds
+                    print(f"Skipping segment {i+1} - too short for analysis")
+                    continue
+                    
+                print(f"\nAnalyzing segment {i+1} ({len(segment)/self.preprocessor.sample_rate:.2f}s)...")
                 
                 # Save segment audio
                 segment_path = os.path.join(os.path.dirname(file_path), f"temp_segment_{i}.wav")
@@ -335,9 +333,9 @@ class RagaIdentifier:
                             
                             # Store segment results
                             segment_results.append({
-                                'segment_label': label,
-                                'start_time': float(start_time),
-                                'end_time': float(end_time),
+                                'segment_label': f"Segment {i+1}",
+                                'start_time': float(i * len(segment) / self.preprocessor.sample_rate),
+                                'end_time': float((i+1) * len(segment) / self.preprocessor.sample_rate),
                                 'top_matches': segment_top_matches
                             })
                 except Exception as e:
@@ -349,6 +347,11 @@ class RagaIdentifier:
                 except:
                     pass
             
+            # Only proceed with mixed raga analysis if we have enough successful segment analyses
+            if len(segment_results) < 2:
+                print("Not enough successful segment analyses for mixed raga detection.")
+                return full_file_results
+                
             # Analyze segment results to detect mixed ragas
             mixed_raga_analysis = self._analyze_mixed_ragas(segment_results)
             
@@ -398,11 +401,35 @@ class RagaIdentifier:
         for segment in segment_results:
             if 'top_matches' in segment and segment['top_matches']:
                 top_raga = segment['top_matches'][0]['raga_id']
-                segment_ragas.append((segment['segment_label'], top_raga, segment['top_matches'][0]['confidence']))
-                raga_counts[top_raga] += 1
+                top_confidence = segment['top_matches'][0]['confidence']
+                
+                # Only consider segments with reasonable confidence
+                if top_confidence > 0.35:  # Increased from any confidence to 0.35
+                    segment_ragas.append((segment['segment_label'], top_raga, top_confidence))
+                    raga_counts[top_raga] += 1
+        
+        # If we don't have enough confident segments, don't try to detect mixed ragas
+        if len(segment_ragas) < 3:  # Need at least 3 confident segments
+            return {
+                'is_mixed_raga': False,
+                'confidence': 0.0,
+                'transitions': []
+            }
         
         # Determine if this is likely a mixed raga composition
         unique_ragas = len(raga_counts)
+        
+        # Check if any raga dominates (appears in more than 70% of segments)
+        total_segments = len(segment_ragas)
+        for raga, count in raga_counts.items():
+            if count / total_segments > 0.7:
+                # One raga dominates - likely not a mixed composition
+                return {
+                    'is_mixed_raga': False,
+                    'confidence': 0.1,  # Low confidence in mixed status
+                    'unique_ragas': unique_ragas,
+                    'transitions': []
+                }
         
         # Find transitions between different ragas
         transitions = []
@@ -410,21 +437,22 @@ class RagaIdentifier:
         
         for i, (label, raga, confidence) in enumerate(segment_ragas):
             if prev_raga and raga != prev_raga:
-                transitions.append({
-                    'from': prev_raga,
-                    'to': raga,
-                    'segment': label,
-                    'confidence': confidence
-                })
+                # Only count transitions where both segments have good confidence
+                if confidence > 0.4:  # Increased confidence threshold for transitions
+                    transitions.append({
+                        'from': prev_raga,
+                        'to': raga,
+                        'segment': label,
+                        'confidence': confidence
+                    })
             prev_raga = raga
         
         # Calculate confidence in mixed raga determination
-        # Higher if there are clear transitions and unique ragas
         mixed_confidence = 0.0
         
-        if unique_ragas > 1:
-            # Basic confidence based on having multiple ragas
-            mixed_confidence = min(0.5 + (unique_ragas - 1) * 0.15, 0.95)
+        if unique_ragas > 1 and len(transitions) >= 2:  # Need at least 2 transitions
+            # Basic confidence based on having multiple ragas with transitions
+            mixed_confidence = min(0.4 + (unique_ragas - 1) * 0.15 + (len(transitions) * 0.05), 0.95)
             
             # Adjust based on transition clarity
             if transitions:
@@ -432,7 +460,8 @@ class RagaIdentifier:
                 avg_transition_confidence = sum(transition_confidences) / len(transition_confidences)
                 mixed_confidence *= (0.5 + 0.5 * avg_transition_confidence)
         
-        is_mixed = mixed_confidence > 0.4  # Threshold for mixed raga determination
+        # Increase the threshold for mixed raga determination
+        is_mixed = mixed_confidence > 0.65  # Increased from 0.4 to 0.65
         
         return {
             'is_mixed_raga': is_mixed,
@@ -930,6 +959,63 @@ class RagaIdentifier:
         description.append("      Consider these results as suggestions rather than definitive identifications.")
         
         return "\n".join(description)
+    
+    def provide_feedback(self, analysis_result, correct_raga_id, correct_raga_name=None, update_model=True):
+        """
+        Provide feedback about the correct raga for an analysis result.
+        
+        Parameters:
+        - analysis_result: Analysis result dictionary
+        - correct_raga_id: Correct raga ID
+        - correct_raga_name: Correct raga name (optional)
+        - update_model: Whether to update the raga model with this information
+        
+        Returns:
+        - True if successful, False otherwise
+        """
+        if not analysis_result:
+            print("No analysis result provided.")
+            return False
+        
+        try:
+            # Get the file path from the analysis
+            file_path = analysis_result.get('file_path')
+            if not file_path or not os.path.exists(file_path):
+                print(f"Error: File path '{file_path}' not found in analysis or does not exist.")
+                return False
+            
+            # Store this feedback for future reference
+            if hasattr(self, 'store_feedback'):
+                self.store_feedback(file_path, correct_raga_id, correct_raga_name or correct_raga_id)
+                print(f"Stored feedback for future reference: {correct_raga_id}")
+            
+            # If updating model, re-analyze with correct raga information
+            if update_model:
+                # Re-extract features
+                feature_extractor = RagaFeatureExtractor()
+                features = feature_extractor.analyze_file(file_path)
+                
+                if features:
+                    # Update the model with correct raga ID
+                    feature_extractor.update_raga_model(correct_raga_id, correct_raga_name)
+                    feature_extractor.save_raga_models()
+                    
+                    # Give extra weight to this example by updating multiple times
+                    # This effectively makes this feedback count more without actual duplication
+                    for _ in range(2):  # Update 3 times total (1 normal + 2 extra)
+                        feature_extractor.update_raga_model(correct_raga_id, correct_raga_name)
+                    
+                    print(f"Updated raga model for: {correct_raga_id} with extra weight")
+                    return True
+                else:
+                    print("Failed to extract features for model update.")
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error providing feedback: {e}")
+            return False
     
     def save_results(self, output_path=None):
         """
