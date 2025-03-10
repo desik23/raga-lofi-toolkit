@@ -40,12 +40,55 @@ class RagaFeatureExtractor:
     
     def _load_raga_models(self, models_file='data/raga_models.pkl'):
         """Load pre-trained raga models if available."""
+        models_loaded = False
+        
         try:
             with open(models_file, 'rb') as f:
                 self.raga_models = pickle.load(f)
-            print(f"Loaded {len(self.raga_models)} raga models")
+                print(f"Loaded {len(self.raga_models)} raga models")
+                models_loaded = True
         except (FileNotFoundError, pickle.PickleError):
-            print("No raga models found. New models will be created from analyzed recordings.")
+            print("No raga models found. Loading individual raga feature files...")
+            models_loaded = self._load_individual_raga_files()
+        
+        # If still no models, initialize from ragas.json
+        if not models_loaded or len(self.raga_models) == 0:
+            print("No raga models found. Initializing basic models from ragas.json...")
+            self.initialize_basic_models_from_ragas_json()
+
+    def _load_individual_raga_files(self, features_dir='data/raga_features'):
+        """Load individual raga feature files if available."""
+        if not os.path.exists(features_dir):
+            print(f"Directory {features_dir} not found. No raga data loaded.")
+            return False
+        
+        models_loaded = False
+        
+        for filename in os.listdir(features_dir):
+            if filename.endswith('.json'):
+                try:
+                    file_path = os.path.join(features_dir, filename)
+                    with open(file_path, 'r') as f:
+                        features = json.load(f)
+                    
+                    # Extract raga ID from metadata or filename
+                    if 'metadata' in features and 'raga_id' in features['metadata']:
+                        raga_id = features['metadata']['raga_id']
+                    else:
+                        # Try to extract from filename
+                        raga_id = filename.split('_')[0]
+                    
+                    if raga_id:
+                        self.raga_models[raga_id] = features
+                        models_loaded = True
+                    
+                except Exception as e:
+                    print(f"Error loading raga file {filename}: {e}")
+        
+        print(f"Loaded {len(self.raga_models)} raga models from individual files")
+        return models_loaded
+    
+    print(f"Loaded {len(self.raga_models)} raga models from individual files")
     
     def analyze_file(self, file_path):
         """
@@ -1227,7 +1270,167 @@ class RagaFeatureExtractor:
         except Exception as e:
             print(f"Error saving raga models: {e}")
             return False
-    
+    def initialize_basic_models_from_ragas_json(self, ragas_file='data/ragas.json'):
+        """
+        Initialize basic raga models from ragas.json as a starting point.
+        These will be enhanced with actual audio analysis data over time.
+        
+        Parameters:
+        - ragas_file: Path to the ragas.json file
+        
+        Returns:
+        - Number of raga models initialized
+        """
+        try:
+            with open(ragas_file, 'r') as f:
+                data = json.load(f)
+                
+            # Create basic models for each raga defined in ragas.json
+            ragas_initialized = 0
+            for raga in data.get('ragas', []):
+                raga_id = raga.get('id')
+                
+                # Skip if raga doesn't have an ID or already has a model
+                if not raga_id or raga_id in self.raga_models:
+                    continue
+                    
+                # Create basic model structure
+                basic_model = {
+                    'metadata': {
+                        'raga_id': raga_id,
+                        'raga_name': raga.get('name', raga_id),
+                        'system': raga.get('system', 'hindustani'),
+                        'created_from': 'ragas.json'
+                    },
+                    'arohana_avarohana': {
+                        'arohana': raga.get('arohan', []),
+                        'avarohana': raga.get('avarohan', [])
+                    },
+                    'vadi_samvadi': {
+                        'vadi': raga.get('vadi'),
+                        'samvadi': raga.get('samvadi')
+                    },
+                    'note_distribution': {
+                        'scale_degrees': sorted(list(set(raga.get('arohan', []) + raga.get('avarohan', [])))),
+                        'note_percentages': self._create_basic_note_distribution(raga)
+                    },
+                    'transition_matrix': self._create_basic_transition_matrix(raga),
+                    'gamaka_features': {
+                        'gamaka_percentage': 0.3,  # Default value until analyzed
+                        'ornamented_notes': []
+                    },
+                    'characteristic_phrases': [],
+                    'phrase_features': {
+                        'avg_length': 4.0,  # Default value
+                        'contour_counts': {'ascending': 1, 'descending': 1, 'mixed': 1}
+                    }
+                }
+                
+                # Add to raga models
+                self.raga_models[raga_id] = basic_model
+                ragas_initialized += 1
+                
+            print(f"Initialized {ragas_initialized} basic raga models from ragas.json")
+            
+            # Save the initialized models
+            if ragas_initialized > 0:
+                self.save_raga_models()
+                
+            return ragas_initialized
+            
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error initializing raga models from ragas.json: {e}")
+            return 0
+        
+    def _create_basic_note_distribution(self, raga):
+        """Create a basic note distribution based on theoretical raga structure."""
+        # Extract all notes from arohana and avarohana
+        all_notes = set(raga.get('arohan', []) + raga.get('avarohan', []))
+        
+        # Create a distribution with higher weights for vadi and samvadi
+        distribution = {}
+        for note in all_notes:
+            note_str = str(note)
+            # Base probability
+            distribution[note_str] = 10.0
+            
+        # Give Sa (0) the highest probability
+        distribution['0'] = 25.0
+        
+        # Give Pa (7) a higher probability if present
+        if '7' in distribution:
+            distribution['7'] = 20.0
+        
+        # Give Vadi higher probability
+        if raga.get('vadi') is not None:
+            vadi_str = str(raga.get('vadi'))
+            if vadi_str in distribution:
+                distribution[vadi_str] = 22.0
+        
+        # Give Samvadi higher probability
+        if raga.get('samvadi') is not None:
+            samvadi_str = str(raga.get('samvadi'))
+            if samvadi_str in distribution:
+                distribution[samvadi_str] = 18.0
+        
+        # Normalize to percentages
+        total = sum(distribution.values())
+        for note in distribution:
+            distribution[note] = (distribution[note] / total) * 100
+            
+        return distribution
+
+    def _create_basic_transition_matrix(self, raga):
+        """Create a basic transition matrix based on arohana/avarohana rules."""
+        # Extract arohana and avarohana
+        arohana = raga.get('arohan', [])
+        avarohana = raga.get('avarohan', [])
+        
+        # Initialize empty matrix
+        matrix = {}
+        
+        # Create transitions based on arohana (ascending)
+        for i in range(len(arohana) - 1):
+            from_note = str(arohana[i])
+            to_note = str(arohana[i + 1])
+            
+            if from_note not in matrix:
+                matrix[from_note] = {}
+            
+            # Add transition with high probability
+            matrix[from_note][to_note] = 0.7
+            
+            # Add some possibility to jump to other valid notes
+            for j, other_note in enumerate(arohana):
+                if j != i and j != i + 1:
+                    other_str = str(other_note)
+                    matrix[from_note][other_str] = matrix[from_note].get(other_str, 0) + 0.05
+        
+        # Create transitions based on avarohana (descending)
+        for i in range(len(avarohana) - 1):
+            from_note = str(avarohana[i])
+            to_note = str(avarohana[i + 1])
+            
+            if from_note not in matrix:
+                matrix[from_note] = {}
+            
+            # Add transition with high probability
+            matrix[from_note][to_note] = 0.7
+            
+            # Add some possibility to jump to other valid notes
+            for j, other_note in enumerate(avarohana):
+                if j != i and j != i + 1:
+                    other_str = str(other_note)
+                    matrix[from_note][other_str] = matrix[from_note].get(other_str, 0) + 0.05
+        
+        # Normalize probabilities
+        for from_note in matrix:
+            total = sum(matrix[from_note].values())
+            for to_note in matrix[from_note]:
+                matrix[from_note][to_note] /= total
+        
+        return {'matrix': matrix}
+
     def export_raga_features_json(self, filename='outputs/raga_features.json', raga_id=None, raga_name=None):
         """
         Export raga features to a JSON file for use in other modules.

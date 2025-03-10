@@ -328,10 +328,14 @@ class CarnaticAudioPreprocessor:
         n_segments = max(2, n_segments)
         
         # Convert recurrence matrix to feature vectors for clustering
-        embedding = librosa.segment.agglomerative(rec_matrix, n_segments)
-        
-        # Extract segment boundaries
-        boundaries = librosa.segment.subsegment(rec_matrix, n_segments, embedding=embedding)
+        try:
+            # Newer librosa versions
+            embedding = librosa.segment.agglomerative(rec_matrix, n_segments)
+            boundaries = librosa.segment.subsegment(rec_matrix, n_segments, embedding=embedding)
+        except TypeError:
+            # Older librosa versions
+            boundaries = librosa.segment.agglomerative(rec_matrix, n_segments)
+
         boundary_times = librosa.frames_to_time(boundaries, sr=self.sample_rate)
         
         # Add start and end times
