@@ -984,10 +984,21 @@ class RagaIdentifier:
                 print(f"Error: File path '{file_path}' not found in analysis or does not exist.")
                 return False
             
-            # Store this feedback for future reference
-            if hasattr(self, 'store_feedback'):
-                self.store_feedback(file_path, correct_raga_id, correct_raga_name or correct_raga_id)
-                print(f"Stored feedback for future reference: {correct_raga_id}")
+            # Check if the identified raga matches the correct one
+            top_match = None
+            if ('overall_results' in analysis_result and 
+                'top_matches' in analysis_result['overall_results'] and
+                analysis_result['overall_results']['top_matches']):
+                
+                top_match = analysis_result['overall_results']['top_matches'][0]
+                
+                if top_match['raga_id'] == correct_raga_id:
+                    print(f"Correct identification: {correct_raga_id} ({top_match['confidence']:.2f})")
+                else:
+                    print(f"Incorrect identification: {top_match['raga_id']} instead of {correct_raga_id}")
+                    print(f"Confidence was: {top_match['confidence']:.2f}")
+            else:
+                print(f"No raga identified. Correct raga is: {correct_raga_id}")
             
             # If updating model, re-analyze with correct raga information
             if update_model:
@@ -996,16 +1007,17 @@ class RagaIdentifier:
                 features = feature_extractor.analyze_file(file_path)
                 
                 if features:
-                    # Update the model with correct raga ID
+                    # Update the model with correct raga ID - first time
                     feature_extractor.update_raga_model(correct_raga_id, correct_raga_name)
+                    
+                    # For incorrect identifications, reinforce the learning
+                    if not top_match or top_match['raga_id'] != correct_raga_id:
+                        # Update the model multiple times to give more weight to this correction
+                        for _ in range(2):  # Update 2 more times (3 total)
+                            feature_extractor.update_raga_model(correct_raga_id, correct_raga_name)
+                    
                     feature_extractor.save_raga_models()
-                    
-                    # Give extra weight to this example by updating multiple times
-                    # This effectively makes this feedback count more without actual duplication
-                    for _ in range(2):  # Update 3 times total (1 normal + 2 extra)
-                        feature_extractor.update_raga_model(correct_raga_id, correct_raga_name)
-                    
-                    print(f"Updated raga model for: {correct_raga_id} with extra weight")
+                    print(f"Updated raga model for: {correct_raga_id}")
                     return True
                 else:
                     print("Failed to extract features for model update.")
@@ -1066,8 +1078,147 @@ class RagaIdentifier:
         except Exception as e:
             print(f"Error saving results: {e}")
             return None
-
-
+    def reset_raga_models(self, raga_ids):
+        """
+        Reset specific raga models to their theoretical structure.
+        
+        Parameters:
+        - raga_ids: List of raga IDs to reset
+        
+        Returns:
+        - Number of ragas reset
+        """
+        if not hasattr(self.feature_extractor, 'raga_models'):
+            print("No raga models available.")
+            return 0
+        
+        # Load ragas.json for theoretical data
+        try:
+            with open('data/ragas.json', 'r') as f:
+                ragas_data = json.load(f)
+                ragas_dict = {raga['id']: raga for raga in ragas_data['ragas']}
+        except Exception as e:
+            print(f"Error loading ragas.json: {e}")
+            return 0
+        
+        reset_count = 0
+        for raga_id in raga_ids:
+            if raga_id in self.feature_extractor.raga_models:
+                # Check if raga exists in ragas.json
+                if raga_id in ragas_dict:
+                    # Get theoretical data
+                    theoretical_raga = ragas_dict[raga_id]
+                    
+                    # Create a fresh model based on theoretical structure
+                    fresh_model = {
+                        'metadata': {
+                            'raga_id': raga_id,
+                            'raga_name': theoretical_raga.get('name', raga_id),
+                            'reset_date': datetime.datetime.now().isoformat()
+                        },
+                        'arohana_avarohana': {
+                            'arohana': theoretical_raga.get('arohan', []),
+                            'avarohana': theoretical_raga.get('avarohan', [])
+                        },
+                        'note_distribution': {
+                            'scale_degrees': sorted(list(set(
+                                theoretical_raga.get('arohan', []) + 
+                                theoretical_raga.get('avarohan', [])
+                            )))
+                        }
+                    }
+                    
+                    # Add theoretical note distribution with higher weight for vadi/samvadi
+                    note_distribution = {}
+                    for note in fresh_model['note_distribution']['scale_degrees']:
+                        weight = 10.0  # Base weight
+                        if note == 0:  # Sa
+                            weight = 25.0
+                        elif note == 7:  # Pa
+                            weight = 20.0
+                        elif note == theoretical_raga.get('vadi'):
+                            weight = 22.0
+                        elif note == theoretical_raga.get('samvadi'):
+                            weight = 18.0
+                        
+                        note_distribution[str(note)] = weight
+                    
+                    # Normalize to percentages
+                    total_weight = sum(note_distribution.values())
+                    for note in note_distribution:
+                        note_distribution[note] = (note_distribution[note] / total_weight) * 100
+                    
+                    fresh_model['note_distribution']['note_percentages'] = note_distribution
+                    
+                    # Replace the existing model
+                    self.feature_extractor.raga_models[raga_id] = fresh_model
+                    reset_count += 1
+                    print(f"Reset model for raga: {raga_id}")
+                    
+        # Save the updated models
+        if reset_count > 0:
+            self.feature_extractor.save_raga_models()
+        
+        return reset_count
+    def analyze_note_distribution(self, file_path):
+        """
+        Analyze the detected note distribution in a file, showing what notes are actually being identified.
+        """
+        # Load and analyze the file
+        self.audio_analyzer.load_audio(file_path)
+        self.audio_analyzer.extract_pitch()
+        self.audio_analyzer.detect_tonic()
+        note_events = self.audio_analyzer.extract_note_events()
+        
+        if not note_events:
+            print("No notes detected.")
+            return
+        
+        # Count the occurrence of each semitone
+        semitone_counts = {}
+        for note in note_events:
+            semitone = note['semitone'] % 12
+            if semitone not in semitone_counts:
+                semitone_counts[semitone] = 0
+            semitone_counts[semitone] += 1
+        
+        # Convert to percentages
+        total_notes = sum(semitone_counts.values())
+        semitone_percentages = {s: (count/total_notes*100) for s, count in semitone_counts.items()}
+        
+        # Display the results
+        indian_notes = ['Sa', 'r', 'R', 'g', 'G', 'm', 'M', 'P', 'd', 'D', 'n', 'N']
+        print("Note Distribution Analysis:")
+        print("---------------------------")
+        for semitone in sorted(semitone_percentages.keys()):
+            print(f"{indian_notes[semitone]}: {semitone_percentages[semitone]:.2f}%")
+        
+        # Output the scale structure
+        scale_degrees = sorted(semitone_counts.keys())
+        print("\nDetected Scale Structure:")
+        print("------------------------")
+        print("Semitones:", scale_degrees)
+        print("Indian notation:", [indian_notes[s] for s in scale_degrees])
+        
+        # Compare with known ragas
+        print("\nComparison with Known Ragas:")
+        print("---------------------------")
+        if hasattr(self, 'feature_extractor') and hasattr(self.feature_extractor, 'raga_models'):
+            for raga_id, model in self.feature_extractor.raga_models.items():
+                if 'arohana_avarohana' in model:
+                    arohana = set(n % 12 for n in model['arohana_avarohana'].get('arohana', []))
+                    avarohana = set(n % 12 for n in model['arohana_avarohana'].get('avarohana', []))
+                    all_notes = arohana.union(avarohana)
+                    
+                    # Calculate similarity
+                    detected_notes = set(scale_degrees)
+                    common_notes = detected_notes.intersection(all_notes)
+                    if common_notes:
+                        jaccard = len(common_notes) / len(detected_notes.union(all_notes))
+                        if jaccard > 0.7:  # Only show good matches
+                            raga_name = model.get('metadata', {}).get('raga_name', raga_id)
+                            print(f"{raga_name} ({raga_id}): {jaccard:.2f} similarity")
+                            print(f"  Scale notes: {sorted(all_notes)}")
 def identify_raga_in_file(file_path, preprocess=True, segmentation=True, top_n=3, plot=False, save_results=True):
     """
     Utility function to identify the raga(s) in an audio file.

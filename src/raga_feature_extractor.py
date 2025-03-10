@@ -1453,7 +1453,18 @@ class RagaFeatureExtractor:
                 matrix[from_note][to_note] /= total
         
         return {'matrix': matrix}
-
+    # Add a helper function to RagaFeatureExtractor to specifically check for major scale patterns
+    def _is_major_scale(self, arohana, avarohana):
+        """Check if the scale pattern matches a major scale (Shankarabharanam)"""
+        # Major scale semitones: 0, 2, 4, 5, 7, 9, 11
+        major_scale = {0, 2, 4, 5, 7, 9, 11}
+        arohana_set = set(note % 12 for note in arohana)
+        avarohana_set = set(note % 12 for note in avarohana)
+        
+        return (arohana_set.issubset(major_scale) and 
+                avarohana_set.issubset(major_scale) and
+                len(arohana_set.intersection(major_scale)) >= 6)
+    
     def export_raga_features_json(self, filename='outputs/raga_features.json', raga_id=None, raga_name=None):
         """
         Export raga features to a JSON file for use in other modules.

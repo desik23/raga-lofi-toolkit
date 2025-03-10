@@ -198,7 +198,43 @@ class CarnaticAudioAnalyzer:
         
         print(f"Detected tonic: {tonic_note} ({tonic_freq:.2f} Hz)")
         print(f"Tonic candidates: {tonic_candidates}")
+                # Add this stabilization code at the end
+        if hasattr(self, 'previous_tonic') and self.previous_tonic:
+            # Check if the new tonic is very different from previous detection
+            prev_freq = self.previous_tonic['frequency']
+            new_freq = tonic_freq
+            
+            # Calculate ratio - should be close to 1.0 or a simple multiple
+            ratio = new_freq / prev_freq
+            
+            # If the ratio is close to a semitone difference or greater, be suspicious
+            if abs(1.0 - ratio) < 0.03:
+                # Very close match, keep new tonic
+                pass
+            elif any(abs(ratio - r) < 0.05 for r in [2.0, 0.5]):
+                # Octave difference, adjust to previous octave
+                print(f"Adjusting tonic octave to match previous detection")
+                if ratio > 1:
+                    tonic_freq = tonic_freq / 2
+                else:
+                    tonic_freq = tonic_freq * 2
+                tonic_note = librosa.hz_to_note(tonic_freq)
+            else:
+                # Significant difference - use the previous tonic if confidence is low
+                confidence_threshold = 0.7  # Adjust as needed
+                if top_peak_value / total_peak_weight < confidence_threshold:
+                    print(f"Low confidence tonic detection ({tonic_note}), reverting to previous tonic ({self.previous_tonic['note']})")
+                    tonic_freq = prev_freq
+                    tonic_note = self.previous_tonic['note']
         
+        # Store the detected tonic for future reference
+        self.previous_tonic = {
+            'frequency': tonic_freq,
+            'note': tonic_note,
+            'cents': tonic_cents
+        }
+        
+        self.tonic = self.previous_tonic
         # Plot histogram if requested
         if plot:
             plt.figure(figsize=(12, 6))
@@ -364,7 +400,39 @@ class CarnaticAudioAnalyzer:
         self.note_events = note_events
         
         print(f"Extracted {len(note_events)} note events")
+            # Add this improved filtering after note extraction
+        filtered_notes = []
+        for note in note_events:
+            # Skip notes with very low confidence
+            if note['confidence'] < 0.3:
+                continue
+                
+            # Convert to scale degree relative to tonic
+            cents_from_tonic = 1200 * np.log2(note['frequency'] / max(1.0, self.tonic['frequency']))
+            raw_semitone = cents_from_tonic / 100
+            
+            # Quantize to nearest semitone with special handling for common Carnatic positions
+            # In Carnatic music, some notes appear at specific microtonal positions
+            if abs(raw_semitone - round(raw_semitone)) > 0.2:
+                # Significant deviation from equal temperament
+                # Check if it's a known microtonal position in Carnatic music
+                known_microtones = {0.33: 1, 0.66: 1, 1.25: 1, 1.75: 2}
+                for micro, target in known_microtones.items():
+                    if abs(raw_semitone % 1 - micro) < 0.1:
+                        # Map to the corresponding semitone
+                        note['semitone'] = int(raw_semitone) + target
+                        break
+                else:
+                    # Not a known microtone, use standard rounding
+                    note['semitone'] = round(raw_semitone)
+            else:
+                # Standard semitone
+                note['semitone'] = round(raw_semitone)
+                
+            filtered_notes.append(note)
         
+        # Update note_events with filtered version
+        self.note_events = filtered_notes
         return note_events
     
     def extract_phrases(self, min_notes=2, max_interval=2.0):  # Increased interval
