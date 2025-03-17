@@ -1,0 +1,94 @@
+{
+  "bhimpalasi": [
+    "peaceful",
+    "afternoon"
+  ],
+  "deshkar": [
+    "peaceful",
+    "morning"
+  ],
+  "durga": [
+    "peaceful",
+    "evening"
+  ],
+  "bhairav": [
+    "devotional",
+    "morning"
+  ],
+  "bhairavi": [
+    "devotional",
+    "morning"
+  ],
+  "todi": [
+    "devotional",
+    "morning"
+  ],
+  "yaman": [
+    "romantic",
+    "evening"
+  ],
+  "kedar": [
+    "romantic",
+    "evening"
+  ],
+  "kamod": [
+    "romantic",
+    "evening"
+  ],
+  "marwa": [
+    "contemplative",
+    "evening"
+  ],
+  "puriya": [
+    "contemplative",
+    "evening"
+  ],
+  "shree": [
+    "contemplative",
+    "evening"
+  ],
+  "malkauns": [
+    "melancholic",
+    "night"
+  ],
+  "darbari": [
+    "melancholic",
+    "night"
+  ],
+  "bageshri": [
+    "melancholic",
+    "night"
+  ],
+  "lalit": [
+    "contemplative",
+    "dawn"
+  ],
+  "ahir_bhairav": [
+    "peaceful",
+    "morning"
+  ],
+  "shuddh_sarang": [
+    "romantic",
+    "afternoon"
+  ],
+  "multani": [
+    "contemplative",
+    "afternoon"
+  ],
+  "puriya_dhanashree": [
+    "contemplative",
+    "evening"
+  ],
+  "hansadhwani": [
+    "peaceful",
+    "evening"
+  ],
+  "jaijaiwanti": [
+    "romantic",
+    "night"
+  ],
+  "chandrakauns": [
+    "melancholic",
+    "night"
+  ]
+}

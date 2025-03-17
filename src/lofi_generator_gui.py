@@ -619,12 +619,12 @@ class LofiGeneratorApp:
         # Show success message
         messagebox.showinfo("Success", "Lo-Fi beat successfully generated!")
 
-    # Add this style configuration in the _create_ui method
-    # In the _create_output_display method
+        # Add this style configuration in the _create_ui method
+        # In the _create_output_display method
 
-    self.output_text.tag_configure("title", font=("Helvetica", 11, "bold"))
-    self.output_text.tag_configure("path", font=("Courier", 10))
-    self.output_text.tag_configure("texture_path", font=("Courier", 10), foreground="green")
+        self.output_text.tag_configure("title", font=("Helvetica", 11, "bold"))
+        self.output_text.tag_configure("path", font=("Courier", 10))
+        self.output_text.tag_configure("texture_path", font=("Courier", 10), foreground="green")
 
 def main():
     # Configure style
