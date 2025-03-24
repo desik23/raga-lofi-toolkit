@@ -4,3 +4,4 @@ logic_templates
 archive
 fresh_venv
 data
+project_batch_request.py

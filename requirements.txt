@@ -1,0 +1,8 @@
+numpy>=1.20.0
+librosa>=0.9.1
+pydub>=0.25.1
+soundfile>=0.10.3
+mido>=1.2.10
+matplotlib>=3.5.1
+scipy>=1.7.3
+tqdm>=4.62.3
