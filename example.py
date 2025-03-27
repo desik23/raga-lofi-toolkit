@@ -18,11 +18,11 @@ def example_raga_generation():
     
     # List available ragas
     print("\nAvailable Ragas:")
-    for raga in generator.list_available_ragas()[:5]:  # Show just the first 5
+    for raga in generator.list_available_ragas()[:10]:  # Show just the first 5
         print(f"- {raga['name']} ({raga['id']}): {raga['mood']}, {raga['time']}")
     
     # Choose a raga for demonstration
-    raga_id = 'yaman'  # Yaman is a popular evening raga
+    raga_id = 'shankarabharanam'  
     
     try:
         # Generate a melody

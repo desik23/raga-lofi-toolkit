@@ -29,6 +29,27 @@ MODEL_SIZES = ["small", "medium", "large", "large_melody"]
 DEFAULT_SIZE = "small"
 DEFAULT_DEVICE = "cpu"  # Can be "cuda", "mps" (for Apple Silicon), or "cpu"
 
+# Try to load external drive configuration
+EXTERNAL_CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                  "external_drive_config.json")
+try:
+    if os.path.exists(EXTERNAL_CONFIG_PATH):
+        with open(EXTERNAL_CONFIG_PATH, 'r') as f:
+            external_config = json.load(f)
+            if 'audiocraft' in external_config and 'model_path' in external_config['audiocraft']:
+                config_model_path = external_config['audiocraft']['model_path']
+                if os.path.exists(config_model_path):
+                    DEFAULT_MODEL_PATH = config_model_path
+                    logger.info(f"Using AudioCraft path from external configuration: {DEFAULT_MODEL_PATH}")
+                    
+                    # Also update other settings if available
+                    if 'model_size' in external_config['audiocraft']:
+                        DEFAULT_SIZE = external_config['audiocraft']['model_size']
+                    if 'device' in external_config['audiocraft']:
+                        DEFAULT_DEVICE = external_config['audiocraft']['device']
+except Exception as e:
+    logger.warning(f"Error loading external drive configuration: {e}")
+
 # Mapping of raga moods to prompt descriptors
 RAGA_MOOD_DESCRIPTORS = {
     "peaceful": [
@@ -152,14 +173,88 @@ class AudioCraftBridge:
         """Add AudioCraft to the Python path if available locally."""
         if not os.path.exists(self.model_path):
             logger.warning(f"AudioCraft path does not exist: {self.model_path}")
-            return False
+            
+            # Check external_drive_config.json again (in case it changed)
+            try:
+                if os.path.exists(EXTERNAL_CONFIG_PATH):
+                    with open(EXTERNAL_CONFIG_PATH, 'r') as f:
+                        external_config = json.load(f)
+                        if 'audiocraft' in external_config and 'model_path' in external_config['audiocraft']:
+                            config_model_path = external_config['audiocraft']['model_path']
+                            if os.path.exists(config_model_path):
+                                logger.info(f"Found AudioCraft in external config: {config_model_path}")
+                                self.model_path = config_model_path
+            except Exception as e:
+                logger.warning(f"Error loading external drive configuration: {e}")
+            
+            # Also try some common locations
+            if not os.path.exists(self.model_path):
+                # Try common paths for external drives
+                external_paths = [
+                    "/Volumes/mainssd/raga_audiocraft/audiocraft",  # macOS external SSD drive
+                    "/Volumes/External/audiocraft",  # Generic external drive on macOS
+                    "E:/audiocraft",  # Windows external drive
+                    "D:/audiocraft",  # Windows external drive
+                    f"{os.path.expanduser('~')}/Downloads/audiocraft",  # Downloads folder
+                    f"{os.path.expanduser('~')}/projects/audiocraft"  # Projects folder
+                ]
+                
+                for path in external_paths:
+                    if os.path.exists(path):
+                        logger.info(f"Found AudioCraft on drive: {path}")
+                        self.model_path = path
+                        break
+                else:
+                    logger.error("Could not find AudioCraft installation in any expected location")
+                    return False
         
+        # Verify the model_path has the audiocraft module
+        audiocraft_pkg_path = os.path.join(self.model_path, "audiocraft")
+        audiocraft_init = os.path.join(audiocraft_pkg_path, "__init__.py")
+        if not os.path.exists(audiocraft_init):
+            # Check if we're pointing to the parent directory
+            if os.path.exists(os.path.join(self.model_path, "audiocraft", "__init__.py")):
+                # Path is correct
+                pass
+            else:
+                # Try to find the audiocraft directory
+                logger.warning(f"No audiocraft module found at {self.model_path}")
+                possible_subdirs = [d for d in os.listdir(self.model_path) 
+                                   if os.path.isdir(os.path.join(self.model_path, d))]
+                for subdir in possible_subdirs:
+                    if subdir == "audiocraft" or os.path.exists(
+                            os.path.join(self.model_path, subdir, "audiocraft", "__init__.py")):
+                        self.model_path = os.path.join(self.model_path, subdir)
+                        logger.info(f"Found audiocraft in subdirectory: {self.model_path}")
+                        break
+        
+        # Now add to Python path if not already there
         if self.model_path not in sys.path:
             logger.info(f"Adding AudioCraft to Python path: {self.model_path}")
             sys.path.insert(0, self.model_path)
             
             # Verify if it's now importable
             if importlib.util.find_spec("audiocraft") is not None:
+                logger.info("Successfully added AudioCraft to Python path")
+                
+                # Save the successful path to external config for future use
+                try:
+                    if os.path.exists(EXTERNAL_CONFIG_PATH):
+                        with open(EXTERNAL_CONFIG_PATH, 'r') as f:
+                            config = json.load(f)
+                        
+                        # Update the path
+                        if 'audiocraft' not in config:
+                            config['audiocraft'] = {}
+                        config['audiocraft']['model_path'] = self.model_path
+                        
+                        # Write back
+                        with open(EXTERNAL_CONFIG_PATH, 'w') as f:
+                            json.dump(config, f, indent=2)
+                            logger.info(f"Updated external config with working path: {self.model_path}")
+                except Exception as e:
+                    logger.warning(f"Could not update external config: {e}")
+                
                 return True
             else:
                 logger.warning(f"Added {self.model_path} to Python path, but audiocraft is still not importable")
@@ -637,6 +732,77 @@ class AudioCraftBridge:
     def is_model_available(self) -> bool:
         """Check if MusicGen model is available."""
         return self._load_models()
+        
+    def verify_installation(self, verbose=True) -> dict:
+        """
+        Verify the AudioCraft installation and return detailed diagnostic information.
+        
+        Args:
+            verbose: Whether to print detailed information to the console
+            
+        Returns:
+            Dictionary with diagnostic information
+        """
+        diagnostics = {
+            "torch_available": self.torch_available,
+            "torchaudio_available": self.torchaudio_available,
+            "audiocraft_available": self.audiocraft_available,
+            "model_path": self.model_path,
+            "model_path_exists": os.path.exists(self.model_path),
+            "model_size": self.model_size,
+            "device": self.device,
+            "python_path": sys.path.copy(),
+            "external_config_path": EXTERNAL_CONFIG_PATH,
+            "external_config_exists": os.path.exists(EXTERNAL_CONFIG_PATH),
+            "can_import_audiocraft": importlib.util.find_spec("audiocraft") is not None,
+            "audiocraft_module_path": None
+        }
+        
+        # Check for audiocraft module directory
+        audiocraft_init = os.path.join(self.model_path, "audiocraft", "__init__.py")
+        diagnostics["audiocraft_init_exists"] = os.path.exists(audiocraft_init)
+        
+        # Get audiocraft module path if importable
+        if diagnostics["can_import_audiocraft"]:
+            import audiocraft
+            diagnostics["audiocraft_module_path"] = audiocraft.__file__
+        
+        # Try to load external config
+        if diagnostics["external_config_exists"]:
+            try:
+                with open(EXTERNAL_CONFIG_PATH, 'r') as f:
+                    diagnostics["external_config"] = json.load(f)
+            except Exception as e:
+                diagnostics["external_config_error"] = str(e)
+        
+        # Print diagnostics if verbose
+        if verbose:
+            print("\n--- AudioCraft Bridge Diagnostics ---")
+            print(f"PyTorch Available: {diagnostics['torch_available']}")
+            print(f"TorchAudio Available: {diagnostics['torchaudio_available']}")
+            print(f"AudioCraft Available: {diagnostics['audiocraft_available']}")
+            print(f"Model Path: {diagnostics['model_path']}")
+            print(f"Model Path Exists: {diagnostics['model_path_exists']}")
+            print(f"AudioCraft Module Importable: {diagnostics['can_import_audiocraft']}")
+            
+            if diagnostics['can_import_audiocraft']:
+                print(f"AudioCraft Module Path: {diagnostics['audiocraft_module_path']}")
+            
+            print(f"External Config Path: {diagnostics['external_config_path']}")
+            print(f"External Config Exists: {diagnostics['external_config_exists']}")
+            
+            if "external_config" in diagnostics:
+                print("\nExternal Config Contents:")
+                if "audiocraft" in diagnostics["external_config"]:
+                    for key, value in diagnostics["external_config"]["audiocraft"].items():
+                        print(f"  {key}: {value}")
+            
+            if "external_config_error" in diagnostics:
+                print(f"External Config Error: {diagnostics['external_config_error']}")
+            
+            print("\nVerification result:", "SUCCESS" if self.is_model_available() else "FAILED")
+            
+        return diagnostics
     
     def set_model_size(self, model_size: str) -> bool:
         """
@@ -711,21 +877,51 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default=None, help='Device (cuda, mps, cpu)')
     parser.add_argument('--duration', type=float, default=10.0, help='Duration in seconds')
     parser.add_argument('--check-only', action='store_true', help='Only check if models are available')
+    parser.add_argument('--verify', action='store_true', help='Verify installation with detailed diagnostics')
+    parser.add_argument('--model-path', type=str, help='Override model path for this run')
     
     args = parser.parse_args()
     
+    # Use command-line model path if provided
+    model_path = args.model_path if args.model_path else None
+    
     # Create the bridge
-    bridge = get_music_gen(model_size=args.model, device=args.device)
+    bridge = get_music_gen(model_size=args.model, device=args.device, model_path=model_path)
+    
+    # Run verification if requested
+    if args.verify:
+        print("\nVerifying AudioCraft installation...")
+        diagnostics = bridge.verify_installation(verbose=True)
+        
+        # If verification failed but we have a valid external config, try to fix it
+        if not diagnostics.get("audiocraft_available", False) and diagnostics.get("external_config_exists", False):
+            try:
+                ext_config = diagnostics.get("external_config", {})
+                if "audiocraft" in ext_config and "model_path" in ext_config["audiocraft"]:
+                    config_path = ext_config["audiocraft"]["model_path"]
+                    if config_path and os.path.exists(config_path):
+                        print(f"\nTrying with model path from external config: {config_path}")
+                        bridge = get_music_gen(model_size=args.model, device=args.device, model_path=config_path)
+                        bridge.verify_installation(verbose=True)
+            except Exception as e:
+                print(f"Error when trying to fix installation: {e}")
+        
+        sys.exit(0 if bridge.is_model_available() else 1)
     
     # Check if models are available
     if args.check_only:
         available = bridge.is_model_available()
         print(f"AudioCraft MusicGen ({args.model}) availability: {'Available' if available else 'Unavailable'}")
-        sys.exit(0)
+        sys.exit(0 if available else 1)
     
     # Check if we have a prompt
     if not args.prompt:
         print("No prompt provided. Use --prompt to specify text for generation.")
+        print("\nAvailable commands:")
+        print("  --verify           Run a detailed installation verification")
+        print("  --check-only       Quick check for model availability")
+        print("  --model-path PATH  Override the model path for this run")
+        print("  --prompt TEXT      Text prompt for audio generation")
         sys.exit(1)
     
     # Generate audio
